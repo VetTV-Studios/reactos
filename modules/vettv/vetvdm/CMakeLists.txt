@@ -10,6 +10,8 @@
 add_library(vetvdm_paths STATIC vetvdm_paths.c)
 target_compile_definitions(vetvdm_paths PRIVATE UNICODE _UNICODE)
 target_include_directories(vetvdm_paths PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# VetTV (Build & Kernel wiring): generated PSDK headers such as winnt.h must exist first.
+add_dependencies(vetvdm_paths psdk)
 
 add_executable(vetvdm_paths_test vetvdm_paths_test.c)
 set_module_type(vetvdm_paths_test win32cui UNICODE)

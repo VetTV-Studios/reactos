@@ -15,6 +15,10 @@ if(ENABLE_WALLPAPERS)
     add_subdirectory(wallpapers)
 endif()
 
+# VetTV: build the vetvdm path helper (library + host test, not put on the CD).
+# See lanes/build-kernel/log.md, Oct 18 2026.
+add_subdirectory(vettv/vetvdm)
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/AHK_Tests/)
     add_subdirectory(AHK_Tests)
 endif()
