@@ -63,6 +63,30 @@ VetTvCopy(PWCHAR Dest, PCWSTR Source, SIZE_T Chars)
     RtlCopyMemory(Dest, Source, Chars * sizeof(WCHAR));
     return Dest + Chars;
 }
+/* VETTV: ReactOS maps NE files to the DOS status, so check the header for "NE". */
+static BOOLEAN
+VetTvIsNeImage(IN LPCWSTR ImagePath)
+{
+    IMAGE_DOS_HEADER Dos;
+    WORD Sig = 0;
+    DWORD Got, SavedError = GetLastError();
+    BOOLEAN IsNe = FALSE;
+    HANDLE File = CreateFileW(ImagePath, GENERIC_READ,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                              NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (File != INVALID_HANDLE_VALUE)
+    {
+        if (ReadFile(File, &Dos, sizeof(Dos), &Got, NULL) && Got == sizeof(Dos) &&
+            Dos.e_magic == IMAGE_DOS_SIGNATURE && Dos.e_lfanew >= (LONG)sizeof(Dos) &&
+            SetFilePointer(File, Dos.e_lfanew, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+            ReadFile(File, &Sig, sizeof(Sig), &Got, NULL) && Got == sizeof(Sig))
+            IsNe = (Sig == IMAGE_OS2_SIGNATURE);
+        CloseHandle(File);
+    }
+    SetLastError(SavedError); /* VETTV: the probe must not change CreateProcess's error. */
+    return IsNe;
+}
+
 BOOLEAN
 VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
                    IN LPCWSTR Kind, OUT PWCHAR *NewCmdLine)
@@ -77,9 +101,10 @@ VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
     PWCHAR Buffer, Dest;
     *NewCmdLine = NULL;
     /* VETTV: fail open onto stock behavior. Never fail the launch from here. */
-    if (!VetTvHookEnabled() || VetTvCallerIsVetVdm(Kind) || !ImagePath || !*ImagePath ||
-        !Kind || !*Kind)
+    if (!VetTvHookEnabled() || !ImagePath || !*ImagePath || !Kind || !*Kind)
         return FALSE;
+    if (Kind[0] == L'd' && VetTvIsNeImage(ImagePath)) Kind = L"win16";
+    if (VetTvCallerIsVetVdm(Kind)) return FALSE;
     /* VETTV: %SystemRoot%\System32\vetvdm.exe via SharedUserData. No profile expansion. */
     Root = SharedUserData->NtSystemRoot;
     RootChars = wcslen(Root);
