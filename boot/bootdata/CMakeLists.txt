@@ -2,9 +2,13 @@
 add_subdirectory(packages)
 
 # Setup settings file
-# VetTV: txtsetup.sif plus the C:\VetTV\ file list (shell, optional VETTV_PAYLOAD_DIR).
-include(${REACTOS_SOURCE_DIR}/modules/vettv/payload/payload.cmake)
-add_cd_file(FILE ${VETTV_TXTSETUP_SIF} DESTINATION reactos NO_CAB FOR bootcd regtest)
+# VetTV: with VETTV_PAYLOAD_DIR set, use a txtsetup.sif with the C:\VetTV\ file list appended.
+if(VETTV_PAYLOAD_DIR)
+    include(${REACTOS_SOURCE_DIR}/modules/vettv/payload/payload.cmake)
+    add_cd_file(FILE ${VETTV_TXTSETUP_SIF} DESTINATION reactos NO_CAB FOR bootcd regtest)
+else()
+add_cd_file(FILE ${CMAKE_CURRENT_SOURCE_DIR}/txtsetup.sif DESTINATION reactos NO_CAB FOR bootcd regtest)
+endif()
 
 add_custom_target(converted_caroots_inf DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/caroots.inf)
 utf16le_convert(${CMAKE_CURRENT_SOURCE_DIR}/caroots.inf ${CMAKE_CURRENT_BINARY_DIR}/caroots.inf)
