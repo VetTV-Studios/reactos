@@ -7,9 +7,11 @@
 # is Build & Kernel's job. Do not add that call from here, and do not install
 # the unit tests on the CD.
 
+# VetTV: in-tree builds already define WINVER/_WIN32_WINNT as 0x502; keep the same spelling
+# so GCC sees an identical redefinition, not a -Werror conflict.
 add_library(vetvdm_paths STATIC vetvdm_paths.c)
 target_compile_definitions(vetvdm_paths PRIVATE
-    UNICODE _UNICODE _WIN32_WINNT=0x0502 WINVER=0x0502)
+    UNICODE _UNICODE _WIN32_WINNT=0x502 WINVER=0x502)
 target_include_directories(vetvdm_paths PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(vetvdm_core STATIC
@@ -25,7 +27,7 @@ add_library(vetvdm_core STATIC
     core/dryrun.c
     core/log.c)
 target_compile_definitions(vetvdm_core PRIVATE
-    UNICODE _UNICODE _WIN32_WINNT=0x0502 WINVER=0x0502)
+    UNICODE _UNICODE _WIN32_WINNT=0x502 WINVER=0x502)
 target_include_directories(vetvdm_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
@@ -51,7 +53,7 @@ add_executable(vetvdm
     core/tempdir.c)
 # Console subsystem: ReactOS cmd waits only for console programs.
 set_module_type(vetvdm win32cui UNICODE)
-target_compile_definitions(vetvdm PRIVATE _WIN32_WINNT=0x0502 WINVER=0x0502)
+target_compile_definitions(vetvdm PRIVATE _WIN32_WINNT=0x502 WINVER=0x502)
 target_include_directories(vetvdm PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/core
@@ -73,7 +75,7 @@ add_executable(vetvdm_test
     vetvdm/image.c
     vetvdm/route.c)
 set_module_type(vetvdm_test win32cui UNICODE)
-target_compile_definitions(vetvdm_test PRIVATE _WIN32_WINNT=0x0502 WINVER=0x0502)
+target_compile_definitions(vetvdm_test PRIVATE _WIN32_WINNT=0x502 WINVER=0x502)
 target_include_directories(vetvdm_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/vetvdm
@@ -84,7 +86,7 @@ add_importlibs(vetvdm_test msvcrt kernel32)
 
 add_executable(vetvdm_paths_test vetvdm_paths_test.c)
 set_module_type(vetvdm_paths_test win32cui UNICODE)
-target_compile_definitions(vetvdm_paths_test PRIVATE _WIN32_WINNT=0x0502 WINVER=0x0502)
+target_compile_definitions(vetvdm_paths_test PRIVATE _WIN32_WINNT=0x502 WINVER=0x502)
 target_link_libraries(vetvdm_paths_test vetvdm_paths)
 add_importlibs(vetvdm_paths_test shell32 msvcrt kernel32)
 # Host-side unit test. No add_cd_file: it does not belong on the boot image.
