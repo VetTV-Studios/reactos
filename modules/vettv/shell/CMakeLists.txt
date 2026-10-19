@@ -21,9 +21,6 @@ target_include_directories(vettvshell PRIVATE
 set_module_type(vettvshell win32gui UNICODE)
 add_importlibs(vettvshell user32 gdi32 shell32 msvcrt kernel32)
 add_dependencies(vettvshell psdk)
-# VetTV: only with VETTV_PAYLOAD_DIR set (default build output unchanged). Goes uncompressed
-# on the CD (i386\VetTV\shell); the generated txtsetup.sif maps it to C:\VetTV\shell\
-# (modules/vettv/payload/payload.cmake).
-if(VETTV_PAYLOAD_DIR)
-    add_cd_file(TARGET vettvshell DESTINATION reactos/VetTV/shell NO_CAB FOR bootcd regtest)
-endif()
+# VetTV: always shipped (default image too). Uncompressed on the CD (i386\VetTV\shell); the
+# generated txtsetup.sif maps it to C:\VetTV\shell\ (modules/vettv/payload/payload.cmake).
+add_cd_file(TARGET vettvshell DESTINATION reactos/VetTV/shell NO_CAB FOR bootcd regtest)

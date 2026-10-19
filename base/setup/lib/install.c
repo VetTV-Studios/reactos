@@ -470,7 +470,8 @@ AddSectionToCopyQueue(
         /* VetTV: only a drive-root [Directories] entry ("\VetTV..." = C:\VetTV...) is
          * placed at the drive root, the same way CreateDirectories() makes it. Everything
          * else ("\" and relative ids) still goes under the install (Windows) folder,
-         * exactly as before. Only VETTV_PAYLOAD_DIR builds list such entries. */
+         * exactly as before. VetTV's generated txtsetup.sif lists such entries (\VetTV\shell
+         * in every build, plus the payload with VETTV_PAYLOAD_DIR); stock ReactOS has none. */
         if (TargetDirectory[0] == L'\\' && TargetDirectory[1] != UNICODE_NULL)
         {
             Status = CombinePaths(FileDstPath, ARRAYSIZE(FileDstPath), 2,
