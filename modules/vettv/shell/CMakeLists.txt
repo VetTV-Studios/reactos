@@ -16,8 +16,8 @@ add_executable(vettvshell
 target_include_directories(vettvshell PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
-target_compile_definitions(vettvshell PRIVATE
-    _WIN32_WINNT=0x0502 WINVER=0x0502)
+# No _WIN32_WINNT/WINVER here: the tree already passes 0x502 and a second
+# spelling is a -Werror redefinition (see 86a0fdf776).
 set_module_type(vettvshell win32gui UNICODE)
 add_importlibs(vettvshell user32 gdi32 shell32 msvcrt kernel32)
 add_dependencies(vettvshell psdk)
