@@ -16,13 +16,8 @@ add_executable(vettvshell
 target_include_directories(vettvshell PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
-# VetTV: in-tree builds already define WINVER/_WIN32_WINNT as 0x502; same spelling as vetvdm
-# so GCC sees an identical redefinition, not a -Werror conflict.
-target_compile_definitions(vettvshell PRIVATE
-    _WIN32_WINNT=0x502 WINVER=0x502)
+# No _WIN32_WINNT/WINVER here: the tree already passes 0x502 and a second
+# spelling is a -Werror redefinition (see 86a0fdf776).
 set_module_type(vettvshell win32gui UNICODE)
 add_importlibs(vettvshell user32 gdi32 shell32 msvcrt kernel32)
 add_dependencies(vettvshell psdk)
-# VetTV: uncompressed on the CD (i386\VetTV\shell); txtsetup.sif maps it to C:\VetTV\shell\
-# (lines appended by modules/vettv/payload/payload.cmake).
-add_cd_file(TARGET vettvshell DESTINATION reactos/VetTV/shell NO_CAB FOR bootcd regtest)
