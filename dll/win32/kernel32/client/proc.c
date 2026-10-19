@@ -50,6 +50,15 @@ RegisterWaitForInputIdle(WaitForInputIdleType lpfnRegisterWaitForInputIdle);
 
 #define CMD_STRING L"cmd /c "
 
+/* VetTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+/* VETTV: one-shot Win32 retry; caller env, directory, and startup info stay. */
+BOOLEAN VetTvRedirectToVdm(IN PUNICODE_STRING PathName, IN LPCWSTR CommandLine,
+                           IN LPCWSTR Kind, OUT PWCHAR *NewCmdLine);
+#define VetTvLaunchRetry() do { VetTvHookTried = TRUE; lpCommandLine = VetTvCmdLine; \
+    lpApplicationName = NULL; VdmBinaryType = 0; IsWowApp = FALSE; \
+    dwCreationFlags &= ~(CREATE_FORCEDOS | CREATE_SEPARATE_WOW_VDM | CREATE_SHARED_WOW_VDM); \
+    SkipSaferAndAppCompat = TRUE; goto AppNameRetry; } while (0)
+
 /* FUNCTIONS ****************************************************************/
 
 VOID
@@ -2240,6 +2249,9 @@ CreateProcessInternalW(IN HANDLE hUserToken,
     UNICODE_STRING VdmString, VdmUnicodeEnv;
     BOOLEAN IsWowApp;
     PBASE_CHECK_VDM CheckVdmMsg;
+    /* VetTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+    PWCHAR VetTvCmdLine; /* VETTV: freed in Quickie */
+    BOOLEAN VetTvHookTried; /* VETTV: hook runs at most once per call */
 
     /* Zero out the initial core variables and handles */
     QuerySection = FALSE;
@@ -2292,6 +2304,9 @@ CreateProcessInternalW(IN HANDLE hUserToken,
     VdmWaitObject = NULL;
     UseVdmReserve = FALSE;
     IsWowApp = FALSE;
+    /* VETTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+    VetTvCmdLine = NULL;
+    VetTvHookTried = FALSE;
 
     /* Set message structures */
     CreateProcessMsg = &CsrMsg[0].Data.CreateProcessRequest;
@@ -3054,6 +3069,14 @@ StartScan:
             /* 16-bit binary. Should we use WOW or does the caller force VDM? */
             if (!(dwCreationFlags & CREATE_FORCEDOS))
             {
+                /* VetTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+                /* VETTV: Win16, before BaseCreateVDMEnvironment. */
+                if (!VetTvHookTried &&
+                    VetTvRedirectToVdm(&PathName, lpCommandLine, L"win16", &VetTvCmdLine))
+                {
+                    VetTvLaunchRetry();
+                }
+
                 /* Remember that we're launching WOW */
                 IsWowApp = TRUE;
 
@@ -3201,6 +3224,15 @@ StartScan:
             {
                 /* We're launching a DOS application */
                 VdmBinaryType = BINARY_TYPE_DOS;
+
+                /* VetTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+                /* VETTV: DOS only. STATUS_INVALID_IMAGE_NE_FORMAT stays on the stock path. */
+                if ((Status != STATUS_INVALID_IMAGE_NE_FORMAT) &&
+                    !VetTvHookTried &&
+                    VetTvRedirectToVdm(&PathName, lpCommandLine, L"dos", &VetTvCmdLine))
+                {
+                    VetTvLaunchRetry();
+                }
 
                 /* Based on the caller environment, create a VDM one */
                 Result = BaseCreateVDMEnvironment(lpEnvironment,
@@ -4338,6 +4370,8 @@ VdmShortCircuit:
 Quickie:
     /* Free the debugger command line if one was allocated */
     if (DebuggerCmdLine) RtlFreeHeap(RtlGetProcessHeap(), 0, DebuggerCmdLine);
+    /* VetTV: launch hook, see lanes/build-kernel/specs/LAUNCH-HOOK.md */
+    if (VetTvCmdLine) RtlFreeHeap(RtlGetProcessHeap(), 0, VetTvCmdLine); /* VETTV */
 
     /* Check if an SxS full path as queried */
     if (PathBuffer)
