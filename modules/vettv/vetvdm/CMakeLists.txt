@@ -59,6 +59,8 @@ target_include_directories(vetvdm PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(vetvdm vetvdm_core vetvdm_paths)
 add_importlibs(vetvdm user32 advapi32 shell32 msvcrt kernel32)
+# VetTV: the launch hook starts %SystemRoot%\System32\vetvdm.exe.
+add_cd_file(TARGET vetvdm DESTINATION reactos/system32 FOR all)
 
 add_executable(vetvdm_test
     core/tests/test_vetvdm.c
@@ -86,6 +88,11 @@ target_compile_definitions(vetvdm_paths_test PRIVATE _WIN32_WINNT=0x0502 WINVER=
 target_link_libraries(vetvdm_paths_test vetvdm_paths)
 add_importlibs(vetvdm_paths_test shell32 msvcrt kernel32)
 # Host-side unit test. No add_cd_file: it does not belong on the boot image.
+
+# VetTV: generated PSDK headers (winnt.h etc.) must exist before these compile.
+foreach(_vetvdm_dep vetvdm_paths vetvdm_core)
+    add_dependencies(${_vetvdm_dep} psdk)
+endforeach()
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     foreach(_vetvdm_tgt vetvdm_paths vetvdm_core vetvdm vetvdm_test vetvdm_paths_test)
