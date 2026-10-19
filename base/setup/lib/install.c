@@ -467,9 +467,13 @@ AddSectionToCopyQueue(
 
         INF_FreeData(SourceRootPath);
 
-        Status = CombinePaths(FileDstPath, ARRAYSIZE(FileDstPath), 2,
-                              pSetupData->DestinationPath.Buffer,
-                              TargetDirectory);
+        /* VetTV: honour absolute "\..." [Directories] entries (e.g. \VetTV) the same way
+         * CreateDirectories() does, instead of always prefixing the install path. */
+        Status = BuildFullDirectoryPath(pSetupData->DestinationRootPath.Buffer,
+                                        pSetupData->InstallPath.Buffer,
+                                        TargetDirectory,
+                                        FileDstPath,
+                                        ARRAYSIZE(FileDstPath));
         UNREFERENCED_PARAMETER(Status);
         // DPRINT1("Could not build the full path for '%S', skipping...\n", TargetDirectory);
         DPRINT("  --> FileDstPath = '%S'\n", FileDstPath);
