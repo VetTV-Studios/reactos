@@ -15,6 +15,9 @@ if(ENABLE_WALLPAPERS)
     add_subdirectory(wallpapers)
 endif()
 
+# VetTV: build vetvdm.exe and its path helper (tests stay off the CD).
+add_subdirectory(vettv/vetvdm)
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/AHK_Tests/)
     add_subdirectory(AHK_Tests)
 endif()
