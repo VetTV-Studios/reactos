@@ -19,6 +19,7 @@
 # VETTV_PAYLOAD_DIR (empty by default): staging folder holding dosbox-x/ and winevdm/
 # (see lanes/build-kernel/payload on the team box). Never commit those binaries.
 
+# VetTV: only included when VETTV_PAYLOAD_DIR is set (boot/bootdata/CMakeLists.txt).
 set(VETTV_PAYLOAD_DIR "" CACHE PATH "VetTV: optional QA payload dir with dosbox-x/ and winevdm/ (empty = none)")
 
 set(_vt_stock_sif ${REACTOS_SOURCE_DIR}/boot/bootdata/txtsetup.sif)
@@ -31,7 +32,7 @@ set(_vt_dirs "\n; VetTV: appended by modules/vettv/payload/payload.cmake\n[Direc
 set(_vt_files "\n[SourceDisksFiles]\nvettvshell.exe = 1,VetTV\\shell,,,,,,101,,,\n")
 set(_vt_next_id 102)
 
-if(VETTV_PAYLOAD_DIR)
+if(VETTV_PAYLOAD_DIR) # always true here; kept for clarity
     if(NOT EXISTS "${VETTV_PAYLOAD_DIR}/dosbox-x/dosbox-x.exe" OR NOT EXISTS "${VETTV_PAYLOAD_DIR}/winevdm/otvdmw.exe")
         message(FATAL_ERROR "VetTV: VETTV_PAYLOAD_DIR=${VETTV_PAYLOAD_DIR} needs dosbox-x/dosbox-x.exe and winevdm/otvdmw.exe")
     endif()
