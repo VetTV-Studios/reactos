@@ -63,28 +63,16 @@ VetTvCopy(PWCHAR Dest, PCWSTR Source, SIZE_T Chars)
     RtlCopyMemory(Dest, Source, Chars * sizeof(WCHAR));
     return Dest + Chars;
 }
-/* VETTV: ReactOS maps NE files to the DOS status, so check the header for "NE". */
+/* VETTV: ReactOS maps NE files to the DOS status. Ask GetBinaryTypeW, which
+ * says Win16 only for real Windows NE files (and old Win 1.x/2.x programs);
+ * Borland DOS-extender NE files (ne_exetyp 5), LE and LX stay DOS. */
 static BOOLEAN
-VetTvIsNeImage(IN LPCWSTR ImagePath)
+VetTvIsWin16Image(IN LPCWSTR ImagePath)
 {
-    IMAGE_DOS_HEADER Dos;
-    WORD Sig = 0;
-    DWORD Got, SavedError = GetLastError();
-    BOOLEAN IsNe = FALSE;
-    HANDLE File = CreateFileW(ImagePath, GENERIC_READ,
-                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                              NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (File != INVALID_HANDLE_VALUE)
-    {
-        if (ReadFile(File, &Dos, sizeof(Dos), &Got, NULL) && Got == sizeof(Dos) &&
-            Dos.e_magic == IMAGE_DOS_SIGNATURE && Dos.e_lfanew >= (LONG)sizeof(Dos) &&
-            SetFilePointer(File, Dos.e_lfanew, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-            ReadFile(File, &Sig, sizeof(Sig), &Got, NULL) && Got == sizeof(Sig))
-            IsNe = (Sig == IMAGE_OS2_SIGNATURE);
-        CloseHandle(File);
-    }
+    DWORD BinType = 0, SavedError = GetLastError();
+    BOOLEAN IsWin16 = (GetBinaryTypeW(ImagePath, &BinType) && BinType == SCS_WOW_BINARY);
     SetLastError(SavedError); /* VETTV: the probe must not change CreateProcess's error. */
-    return IsNe;
+    return IsWin16;
 }
 
 BOOLEAN
@@ -103,7 +91,7 @@ VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
     /* VETTV: fail open onto stock behavior. Never fail the launch from here. */
     if (!VetTvHookEnabled() || !ImagePath || !*ImagePath || !Kind || !*Kind)
         return FALSE;
-    if (Kind[0] == L'd' && VetTvIsNeImage(ImagePath)) Kind = L"win16";
+    if (Kind[0] == L'd' && VetTvIsWin16Image(ImagePath)) Kind = L"win16";
     if (VetTvCallerIsVetVdm(Kind)) return FALSE;
     /* VETTV: %SystemRoot%\System32\vetvdm.exe via SharedUserData. No profile expansion. */
     Root = SharedUserData->NtSystemRoot;
