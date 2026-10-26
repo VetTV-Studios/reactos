@@ -387,9 +387,15 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     ShowWindow(g_wnd, SW_SHOW);
     SetForegroundWindow(g_wnd);
     SetTimer(g_wnd, 1, 30000, NULL);
-    g_kbHook = SetWindowsHookExW(WH_KEYBOARD_LL, KbHook, inst, 0);
-    if (!g_kbHook)
-        VtLog(L"keyboard hook failed error=%lu; quit combo unavailable", GetLastError());
+    /* --no-kbhook: debug switch so QA/Build can rule the quit-combo hook in
+       or out of keyboard problems. The quit combo is unavailable with it. */
+    if (argv && argc >= 2 && !lstrcmpiW(argv[1], L"--no-kbhook")) {
+        VtLog(L"keyboard hook disabled by --no-kbhook; quit combo unavailable");
+    } else {
+        g_kbHook = SetWindowsHookExW(WH_KEYBOARD_LL, KbHook, inst, 0);
+        if (!g_kbHook)
+            VtLog(L"keyboard hook failed error=%lu; quit combo unavailable", GetLastError());
+    }
 
     for (;;) {
         DWORD r = MsgWaitForMultipleObjects(1, &g_activate, FALSE, INFINITE, QS_ALLINPUT);
