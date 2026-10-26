@@ -78,7 +78,7 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
     job = viaVdm ? NULL : CreateJobObjectW(NULL, NULL);
     if (job) {
         ZeroMemory(&lim, sizeof(lim));
-        lim.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        lim.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK; /* a Win32 game may start vetvdm, which needs its own job (no nesting on NT 5.2) */
         if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &lim, sizeof(lim)) ||
             !AssignProcessToJobObject(job, pi.hProcess)) {
             VtLog(L"job setup failed error=%lu, running without job", GetLastError());
