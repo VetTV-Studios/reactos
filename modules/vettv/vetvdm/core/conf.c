@@ -271,7 +271,9 @@ apply_profile(conf_doc *doc, const vcore_profile *prof)
         set_key(doc, "gus", "gus", prof->gus);
     if (prof->mpu401[0])
         set_key(doc, "midi", "mpu401", prof->mpu401);
-    if (prof->output[0])
+    /* output=opengl crashes dosbox-x on ReactOS (bk-stall C); keep the default. */
+    if (prof->output[0] && !vcore_cstr_ieq(prof->output, "opengl") &&
+        !vcore_cstr_ieq(prof->output, "openglnb") && !vcore_cstr_ieq(prof->output, "openglpp"))
         set_key(doc, "sdl", "output", prof->output);
     if (prof->fullscreen[0])
         set_key(doc, "sdl", "fullscreen", prof->fullscreen);
@@ -321,7 +323,7 @@ apply_locks(conf_doc *doc, vcore_lock_report *locks)
             break;
         }
     }
-    if (!prev || !vcore_cstr_ieq(prev, "mapper"))
+    if (prev && !vcore_cstr_ieq(prev, "mapper"))
     {
         if (locks)
             locks->forced_hostkey++;
