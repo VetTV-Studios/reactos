@@ -51,9 +51,11 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
         }
         if (g->json[0])
             wsprintfW(profile, L" --profile=\"%s\"", g->json);
-        /* --caller=shell needs vetvdm rev 3e or later (3d rejects it). */
-        _snwprintf(cmd, 4095, L"\"%s\" --caller=shell --kind=%s --image=\"%s\"%s -- \"%s\"%s%s",
-                  vdm, VtKindName(g->kind), g->exe, profile, g->exe,
+        /* --kind=auto: vetvdm reads the header itself, so its rules (e.g.
+           DOS-extender NE -> DOS) win over the library tag.
+           --caller=shell needs vetvdm rev 3e or later (3d rejects it). */
+        _snwprintf(cmd, 4095, L"\"%s\" --caller=shell --kind=auto --image=\"%s\"%s -- \"%s\"%s%s",
+                  vdm, g->exe, profile, g->exe,
                   g->args[0] ? L" " : L"", g->args);
         /* vetvdm is a console program; don't let a console window flash up
            over the library. QA check H17. */
