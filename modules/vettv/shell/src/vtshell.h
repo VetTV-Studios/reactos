@@ -62,4 +62,19 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r);
 void VtLaunchAbort(void);                   /* quit combo: end the job */
 BOOL VtErrorText(const VT_LAUNCH_RESULT *r, LPWSTR out, DWORD cch);
 
+
+/* vetvdm exit codes. Mirrors core/vetvdm_core.h on vettv/vetvdm-core, which is
+   the source of truth; switch to including it once that branch is merged. */
+#ifndef VETVDM_E_NOLAYER
+#define VETVDM_E_BADARGS   0xE0000001u
+#define VETVDM_E_NOIMAGE   0xE0000002u
+#define VETVDM_E_NOTDOS    0xE0000003u
+#define VETVDM_E_NOLAYER   0xE0000004u
+#define VETVDM_E_START     0xE0000005u
+#define VETVDM_E_NOWIN31   0xE0000006u
+#define VETVDM_E_PROFILE   0xE0000007u
+#define VETVDM_E_CANCELLED 0xE0000008u
+#define VETVDM_E_CLOSED    0xE0000009u
+#endif
+
 #endif

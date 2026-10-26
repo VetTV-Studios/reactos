@@ -115,10 +115,10 @@ void VtLaunchAbort(void)
 {
     Lock();
     if (g_job) {
-        TerminateJobObject(g_job, 0xE0000009); /* treated like "player closed" */
+        TerminateJobObject(g_job, VETVDM_E_CLOSED); /* treated like "player closed" */
         VtLog(L"quit combo: job terminated");
     } else if (g_proc) {
-        TerminateProcess(g_proc, 0xE0000009); /* vetvdm's own job ends its children */
+        TerminateProcess(g_proc, VETVDM_E_CLOSED); /* vetvdm's own job ends its children */
         VtLog(L"quit combo: vetvdm terminated");
     }
     LeaveCriticalSection(&g_lock);
@@ -138,15 +138,15 @@ BOOL VtErrorText(const VT_LAUNCH_RESULT *r, LPWSTR out, DWORD cch)
     if ((r->exitCode & 0xFFFFFF00u) != 0xE0000000u)
         return FALSE; /* the program's own exit code */
     switch (r->exitCode) {
-    case 0xE0000009: return FALSE; /* player window closed: just come back */
-    case 0xE0000001: text = L"The game's start settings are wrong. Check its Options."; break;
-    case 0xE0000002: text = L"Can't find the game's program file. It may have been moved."; break;
-    case 0xE0000003: text = L"This file isn't a DOS or 16-bit program."; break;
-    case 0xE0000004:
-    case 0xE0000005: text = L"The DOS/16-bit player didn't start."; break;
-    case 0xE0000006: text = L"This game is set to use your own Windows 3.1 install, but none is set up."; break;
-    case 0xE0000007: text = L"This game's settings file is damaged. Reset it in Options."; break;
-    case 0xE0000008: return FALSE; /* the user cancelled vetvdm's chooser */
+    case VETVDM_E_CLOSED: return FALSE; /* player window closed: just come back */
+    case VETVDM_E_BADARGS: text = L"The game's start settings are wrong. Check its Options."; break;
+    case VETVDM_E_NOIMAGE: text = L"Can't find the game's program file. It may have been moved."; break;
+    case VETVDM_E_NOTDOS: text = L"This file isn't a DOS or 16-bit program."; break;
+    case VETVDM_E_NOLAYER: text = L"The DOS/16-bit player isn't installed on this system."; break; /* VETVDM_E_NOLAYER */
+    case VETVDM_E_START: text = L"The DOS/16-bit player didn't start."; break;
+    case VETVDM_E_NOWIN31: text = L"This game is set to use your own Windows 3.1 install, but none is set up."; break;
+    case VETVDM_E_PROFILE: text = L"This game's settings file is damaged. Reset it in Options."; break;
+    case VETVDM_E_CANCELLED: return FALSE; /* the user cancelled vetvdm's chooser */
     default: break;
     }
     VtSystemDrive(drive, 4);
