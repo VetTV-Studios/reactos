@@ -70,6 +70,7 @@ test_quote_conf_hash_log(void)
     vcore_cstr_copy(prof.machine, sizeof(prof.machine), "tandy");
     vcore_cstr_copy(prof.memsize, sizeof(prof.memsize), "32");
     vcore_cstr_copy(prof.id, sizeof(prof.id), "doom-sw-1.9");
+    vcore_cstr_copy(prof.output, sizeof(prof.output), "opengl");
     memset(&mount, 0, sizeof(mount));
     mount.drive = 'C';
     mount.type = VCORE_MOUNT_DIR;
@@ -88,6 +89,8 @@ test_quote_conf_hash_log(void)
     check(has(conf.data, "machine=tandy"), "profile machine");
     check(has(conf.data, "memsize=32"), "profile mem");
     check(has(conf.data, "hostkey=mapper"), "hostkey mapper");
+    check(has(conf.data, "output=surface") && !has(conf.data, "output=opengl"), "opengl blocked");
+    check(locks.forced_hostkey == 1, "template hostkey counted once");
     check(!has(conf.data, "mapperfile"), "no mapperfile");
     check(!has(conf.data, "echo leftover"), "template autoexec dropped");
     check(has(conf.data, "DOOM.EXE"), "program line");

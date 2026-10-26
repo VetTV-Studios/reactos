@@ -37,6 +37,7 @@ static const char g_help[] =
     "  --log=<file>\n"
     "  --keep-conf               Leave the generated dosbox-x.conf in place\n"
     "  --dry-run                 Print the layer and conf, then exit 0\n"
+    "  --caller=shell            Mark a launch from vettvshell in vetvdm.log\n"
     "  --from-hook               Keep the caller's console and working directory\n"
     "  --version\n"
     "  --help\n";
@@ -136,7 +137,8 @@ emit_dry(host *st, int layer, const char *conf, const WCHAR *command)
     memset(&in, 0, sizeof(in));
     in.layer = vetvdm_layer_name(layer);
     in.kind = vetvdm_kind_name(st->kind);
-    in.caller = st->cmd.from_hook ? "hook" : (st->cmd.profile[0] ? "shell" : "cli");
+    in.caller = st->cmd.from_hook ? "hook" :
+        ((st->cmd.from_shell || st->cmd.profile[0]) ? "shell" : "cli");
     in.profile_id = st->profile.id;
     in.profile_src = vcore_profile_src_name(st->profile.src);
     in.image = image;
