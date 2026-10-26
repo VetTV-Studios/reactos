@@ -81,10 +81,12 @@ void VtLog(LPCWSTR fmt, ...)
     n = WideCharToMultiByte(CP_UTF8, 0, line, -1, utf8, sizeof(utf8), NULL, NULL);
     if (n <= 1)
         return;
-    h = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+    h = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
                     NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE)
         return;
+    /* FILE_APPEND_DATA alone truncates/overwrites on ReactOS; seek explicitly. */
+    SetFilePointer(h, 0, NULL, FILE_END);
     WriteFile(h, utf8, (DWORD)(n - 1), &wrote, NULL);
     CloseHandle(h);
 }
