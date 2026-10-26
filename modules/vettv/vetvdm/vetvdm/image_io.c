@@ -158,7 +158,7 @@ vetvdm_load_image_info(const WCHAR *path, unsigned char **header,
                              ((unsigned long)keep[0x3E] << 16) |
                              ((unsigned long)keep[0x3F] << 24);
                     if (lfanew >= 0x40 && lfanew < 0x100000ul)
-                        keep_limit = (DWORD)lfanew + 4;
+                        keep_limit = (DWORD)lfanew + 0x40; /* NE header through ne_exetyp (+0x36) */
                 }
                 saw_lfanew = 1;
             }
