@@ -467,9 +467,23 @@ AddSectionToCopyQueue(
 
         INF_FreeData(SourceRootPath);
 
-        Status = CombinePaths(FileDstPath, ARRAYSIZE(FileDstPath), 2,
-                              pSetupData->DestinationPath.Buffer,
-                              TargetDirectory);
+        /* VetTV: only a drive-root [Directories] entry ("\VetTV..." = C:\VetTV...) is
+         * placed at the drive root, the same way CreateDirectories() makes it. Everything
+         * else ("\" and relative ids) still goes under the install (Windows) folder,
+         * exactly as before. VetTV's generated txtsetup.sif lists such entries (\VetTV\shell
+         * in every build, plus the payload with VETTV_PAYLOAD_DIR); stock ReactOS has none. */
+        if (TargetDirectory[0] == L'\\' && TargetDirectory[1] != UNICODE_NULL)
+        {
+            Status = CombinePaths(FileDstPath, ARRAYSIZE(FileDstPath), 2,
+                                  pSetupData->DestinationRootPath.Buffer,
+                                  TargetDirectory);
+        }
+        else
+        {
+            Status = CombinePaths(FileDstPath, ARRAYSIZE(FileDstPath), 2,
+                                  pSetupData->DestinationPath.Buffer,
+                                  TargetDirectory);
+        }
         UNREFERENCED_PARAMETER(Status);
         // DPRINT1("Could not build the full path for '%S', skipping...\n", TargetDirectory);
         DPRINT("  --> FileDstPath = '%S'\n", FileDstPath);
