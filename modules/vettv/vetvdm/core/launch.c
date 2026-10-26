@@ -101,7 +101,66 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
     out->process = pi.hProcess;
     out->thread = pi.hThread;
     out->pid = pi.dwProcessId;
+    /* Pass on the foreground right vettvshell gave us (ASFW_ANY). */
+    AllowSetForegroundWindow(pi.dwProcessId);
     return VETVDM_OK;
+}
+
+typedef struct
+{
+    DWORD pid;
+    HWND hwnd;
+} vcore_find_window;
+
+static BOOL CALLBACK
+vcore_find_window_cb(HWND hwnd, LPARAM lp)
+{
+    vcore_find_window *f = (vcore_find_window *)lp;
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == f->pid && IsWindowVisible(hwnd) && !GetWindow(hwnd, GW_OWNER))
+    {
+        f->hwnd = hwnd;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+/*
+ * Wait up to 10 s for the layer's first visible top-level window and
+ * bring it to the front, so the game has keyboard focus without a click
+ * and the first keystroke is not lost to the launcher (QA qa3d, Lead 3e).
+ * ReactOS may still refuse; AttachThreadInput is the XP-era fallback.
+ */
+static void
+vcore_bring_to_front(vcore_job *job)
+{
+    vcore_find_window f;
+    int i;
+
+    f.pid = job->pid;
+    f.hwnd = NULL;
+    for (i = 0; i < 100 && !f.hwnd; i++)
+    {
+        if (WaitForSingleObject(job->process, 100) != WAIT_TIMEOUT)
+            return;
+        EnumWindows(vcore_find_window_cb, (LPARAM)&f);
+    }
+    if (!f.hwnd)
+        return;
+    if (!SetForegroundWindow(f.hwnd))
+    {
+        HWND fg = GetForegroundWindow();
+        DWORD me = GetCurrentThreadId();
+        DWORD them = fg ? GetWindowThreadProcessId(fg, NULL) : 0;
+        if (them && them != me && AttachThreadInput(me, them, TRUE))
+        {
+            SetForegroundWindow(f.hwnd);
+            AttachThreadInput(me, them, FALSE);
+        }
+    }
+    BringWindowToTop(f.hwnd);
+    SetFocus(f.hwnd);
 }
 
 DWORD
@@ -110,6 +169,7 @@ vcore_job_wait(vcore_job *job, DWORD *exit_code)
     DWORD code = 1;
     if (!job || !job->process)
         return VETVDM_E_START;
+    vcore_bring_to_front(job);
     if (WaitForSingleObject(job->process, INFINITE) != WAIT_OBJECT_0)
         return VETVDM_E_START;
     if (!GetExitCodeProcess(job->process, &code))

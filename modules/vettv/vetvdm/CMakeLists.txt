@@ -77,7 +77,7 @@ target_include_directories(vetvdm_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vetvdm
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(vetvdm_test vetvdm_core)
-add_importlibs(vetvdm_test msvcrt kernel32)
+add_importlibs(vetvdm_test user32 msvcrt kernel32)
 # Host-side unit test. No add_cd_file: it does not belong on the boot image.
 
 add_executable(vetvdm_paths_test vetvdm_paths_test.c)
