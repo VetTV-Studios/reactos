@@ -35,6 +35,7 @@ typedef struct vcore_job
     HANDLE process;
     HANDLE thread;
     DWORD pid;
+    int nested; /* 1 = left in the caller's job, no own job */
 } vcore_job;
 
 DWORD vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
