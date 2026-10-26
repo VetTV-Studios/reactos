@@ -67,6 +67,9 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     VtLog(L"launch kind=%s cmd=%s", VtKindName(g->kind), cmd);
+    /* The launcher is foreground now; let the game (or DOSBox-X, a
+       grandchild via vetvdm) take the foreground when its window opens. */
+    AllowSetForegroundWindow(ASFW_ANY);
     if (!CreateProcessW(viaVdm ? vdm : g->exe, cmd, NULL, NULL, FALSE, flags,
                         NULL, cwd, &si, &pi)) {
         r->createError = GetLastError();
