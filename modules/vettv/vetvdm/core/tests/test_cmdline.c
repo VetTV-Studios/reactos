@@ -167,6 +167,17 @@ test_classify_and_route(void)
     sample(b, sizeof(b), 0, 0x40, "NE", 2);
     cls = vetvdm_classify_image(b, sizeof(b));
     check(cls == VETVDM_IMG_WIN16, "ne");
+    b[0x40 + 0x36] = 2;
+    check(vetvdm_classify_image(b, sizeof(b)) == VETVDM_IMG_WIN16, "ne exetyp windows");
+    b[0x40 + 0x36] = 1;
+    check(vetvdm_classify_image(b, sizeof(b)) == VETVDM_IMG_DOS_MZ, "ne exetyp os2 extender");
+    b[0x40 + 0x36] = 5;
+    check(vetvdm_classify_image(b, sizeof(b)) == VETVDM_IMG_DOS_MZ, "ne exetyp borland");
+    cls = VETVDM_IMG_DOS_MZ;
+    check(vetvdm_resolve_kind(VETVDM_KIND_AUTO, VETVDM_IMG_DOS_MZ, L"C:\\JAZZ.EXE",
+                             1, VETVDM_BIN_WOW, &cls) == VETVDM_KIND_DOS,
+         "extender ne beats reactos wow");
+    check(cls == VETVDM_IMG_DOS_MZ, "extender class");
 
     sample(b, sizeof(b), 0, 0x40, "LE", 2);
     check(vetvdm_classify_image(b, sizeof(b)) == VETVDM_IMG_DOS_LE, "le");

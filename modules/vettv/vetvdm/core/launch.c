@@ -41,6 +41,7 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
     out->thread = NULL;
     out->pid = 0;
     out->nested = 0;
+    out->os_error = 0;
 
     out->job = CreateJobObjectW(NULL, NULL);
     if (!out->job)
@@ -70,7 +71,10 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
         flags = CREATE_SUSPENDED;
         if (!CreateProcessW(app, cmdline, NULL, NULL, FALSE, flags, NULL,
                            (cwd && cwd[0]) ? cwd : NULL, &si, &pi))
+        {
+            out->os_error = GetLastError();
             pi.hProcess = NULL;
+        }
     }
     if (!pi.hProcess)
     {
