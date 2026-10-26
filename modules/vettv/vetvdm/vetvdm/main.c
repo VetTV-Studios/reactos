@@ -62,6 +62,8 @@ launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code)
     status = vcore_launch_in_job(app, command, st->cwd[0] ? st->cwd : NULL, &job);
     if (status != VETVDM_OK)
         return status;
+    if (job.nested)
+        warn_add(st->warn, sizeof(st->warn), "job-nested");
     status = vcore_job_wait(&job, exit_code);
     vcore_job_close(&job);
     if (status != VETVDM_OK)

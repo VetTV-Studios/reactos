@@ -40,6 +40,7 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
     out->process = NULL;
     out->thread = NULL;
     out->pid = 0;
+    out->nested = 0;
 
     out->job = CreateJobObjectW(NULL, NULL);
     if (!out->job)
@@ -57,9 +58,21 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
     memset(&pi, 0, sizeof(pi));
-    flags = CREATE_SUSPENDED;
+    /*
+     * vettvshell runs vetvdm inside its own job, and XP-era kernels and
+     * ReactOS cannot nest jobs. Try to break away first. If the outer job
+     * forbids that, start the child without it and stay in the outer job.
+     */
+    flags = CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB;
     if (!CreateProcessW(app, cmdline, NULL, NULL, FALSE, flags, NULL,
                        (cwd && cwd[0]) ? cwd : NULL, &si, &pi))
+    {
+        flags = CREATE_SUSPENDED;
+        if (!CreateProcessW(app, cmdline, NULL, NULL, FALSE, flags, NULL,
+                           (cwd && cwd[0]) ? cwd : NULL, &si, &pi))
+            pi.hProcess = NULL;
+    }
+    if (!pi.hProcess)
     {
         CloseHandle(out->job);
         out->job = NULL;
@@ -67,12 +80,10 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
     }
     if (!AssignProcessToJobObject(out->job, pi.hProcess))
     {
-        TerminateProcess(pi.hProcess, VETVDM_E_START);
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
+        /* Still in the outer job; that job owns cleanup. */
         CloseHandle(out->job);
         out->job = NULL;
-        return VETVDM_E_START;
+        out->nested = 1;
     }
     if (ResumeThread(pi.hThread) == (DWORD)-1)
     {

@@ -152,13 +152,15 @@ write_log(host *st, DWORD code)
         }
     }
     mkdir_parents(path);
-    file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL,
+    /* ReactOS does not honor append-only access; seek to the end. */
+    file = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ, NULL,
                       OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == INVALID_HANDLE_VALUE)
     {
         vcore_buf_free(&line);
         return;
     }
+    SetFilePointer(file, 0, NULL, FILE_END);
     WriteFile(file, line.data, (DWORD)line.len, &wrote, NULL);
     CloseHandle(file);
     vcore_buf_free(&line);
