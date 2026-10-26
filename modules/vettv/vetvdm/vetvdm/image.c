@@ -52,7 +52,20 @@ vetvdm_classify_image(const unsigned char *bytes, size_t len)
         bytes[lfanew + 2] == 0 && bytes[lfanew + 3] == 0)
         return VETVDM_IMG_PE;
     if (bytes[lfanew] == 'N' && bytes[lfanew + 1] == 'E')
+    {
+        /*
+         * ne_exetyp at +0x36: 0 unknown and 2 Windows are Win16, 4 is
+         * Win386. DOS extenders (Borland RTM/DPMI16) stamp 1 (OS/2), 3
+         * (DOS 4) or 5 (Borland). Those run under DOSBox-X, not WineVDM.
+         */
+        if ((size_t)lfanew + 0x37 <= len)
+        {
+            unsigned char exetyp = bytes[lfanew + 0x36];
+            if (exetyp == 1 || exetyp == 3 || exetyp == 5)
+                return VETVDM_IMG_DOS_MZ;
+        }
         return VETVDM_IMG_WIN16;
+    }
     if (bytes[lfanew] == 'L' && bytes[lfanew + 1] == 'E')
         return VETVDM_IMG_DOS_LE;
     if (bytes[lfanew] == 'L' && bytes[lfanew + 1] == 'X')
@@ -123,6 +136,16 @@ vetvdm_resolve_kind(int requested, int cls, const WCHAR *path,
      * Windows program. SCS_DOS_BINARY on an NE image is a DOS extender
      * (Borland exetyp 5). Do not parse the NE header here.
      */
+    /*
+     * ReactOS reports SCS_WOW_BINARY for any NE image, including DOS
+     * extender programs. A non-Windows ne_exetyp (see classify) wins.
+     */
+    if (have_type && binary_type == VETVDM_BIN_WOW && cls == VETVDM_IMG_DOS_MZ)
+    {
+        if (out_cls)
+            *out_cls = VETVDM_IMG_DOS_MZ;
+        return VETVDM_KIND_DOS;
+    }
     if (have_type && binary_type == VETVDM_BIN_WOW)
     {
         if (out_cls)
