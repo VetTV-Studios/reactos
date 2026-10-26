@@ -5,6 +5,7 @@
    can end the whole tree. Called on a worker thread; it blocks. */
 #include "vtshell.h"
 
+static HANDLE g_proc;
 static HANDLE g_job;            /* job of the running game, NULL when idle */
 static CRITICAL_SECTION g_lock;
 
@@ -70,7 +71,11 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
         return;
     }
 
-    job = CreateJobObjectW(NULL, NULL);
+    /* vetvdm puts itself and DOSBox-X/WineVDM in its own kill-on-close job.
+       ReactOS (NT 5.2) has no nested jobs, so a shell job here made vetvdm's
+       AssignProcessToJobObject fail (0xE0000005). For vetvdm launches the
+       shell tracks the process instead; killing vetvdm closes its job. */
+    job = viaVdm ? NULL : CreateJobObjectW(NULL, NULL);
     if (job) {
         ZeroMemory(&lim, sizeof(lim));
         lim.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -83,6 +88,7 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
     }
     Lock();
     g_job = job;
+    g_proc = pi.hProcess;
     LeaveCriticalSection(&g_lock);
 
     r->started = TRUE;
@@ -91,6 +97,9 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
     CloseHandle(pi.hThread);
     WaitForSingleObject(pi.hProcess, INFINITE);
     GetExitCodeProcess(pi.hProcess, &r->exitCode);
+    Lock();
+    g_proc = NULL;
+    LeaveCriticalSection(&g_lock);
     CloseHandle(pi.hProcess);
     r->seconds = (GetTickCount() - start) / 1000;
 
@@ -108,6 +117,9 @@ void VtLaunchAbort(void)
     if (g_job) {
         TerminateJobObject(g_job, 0xE0000009); /* treated like "player closed" */
         VtLog(L"quit combo: job terminated");
+    } else if (g_proc) {
+        TerminateProcess(g_proc, 0xE0000009); /* vetvdm's own job ends its children */
+        VtLog(L"quit combo: vetvdm terminated");
     }
     LeaveCriticalSection(&g_lock);
 }
