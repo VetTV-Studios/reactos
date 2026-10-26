@@ -424,6 +424,16 @@ vetvdm_cmdline_parse(const WCHAR *raw, vetvdm_cmdline *out)
         split_eq(token, &eq);
         if (option_is(token, L"--from-hook"))
             out->from_hook = 1;
+        else if (option_is(token, L"--caller"))
+        {
+            /* Log-only hint from vettvshell; "shell" is the only value. */
+            if (!eq || lstrcmpiW(eq, L"shell") != 0)
+            {
+                free_args(args, nargs);
+                return fail(out, "--caller accepts only shell");
+            }
+            out->from_shell = 1;
+        }
         else if (option_is(token, L"--keep-conf"))
             out->keep_conf = 1;
         else if (option_is(token, L"--dry-run"))

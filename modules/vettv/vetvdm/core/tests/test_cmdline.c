@@ -85,9 +85,17 @@ test_cmdline(void)
     check(cmd.args && vcore_w_ieq(cmd.args, L"extra"), "tail args");
     vetvdm_cmdline_free(&cmd);
 
+    status = vetvdm_cmdline_parse(L"vetvdm.exe --caller=shell --kind=dos -- C:\\a.exe", &cmd);
+    check(status == VETVDM_OK && cmd.from_shell == 1, "caller shell");
+    vetvdm_cmdline_free(&cmd);
+    status = vetvdm_cmdline_parse(L"vetvdm.exe --caller=cli -- C:\\a.exe", &cmd);
+    check(status == VETVDM_E_CMDLINE, "caller other rejected");
+    vetvdm_cmdline_free(&cmd);
+
     status = vetvdm_cmdline_parse(launcher, &cmd);
     check(status == VETVDM_OK, "launcher parse");
     check(cmd.from_hook == 0, "launcher not hook");
+    check(cmd.from_shell == 0, "launcher no caller flag");
     check(vcore_w_ieq(cmd.image, L"C:\\Games\\DOOM.EXE"), "launcher image");
     check(cmd.args && vcore_w_ieq(cmd.args, L"-episode 1"), "launcher args");
     vetvdm_cmdline_free(&cmd);
