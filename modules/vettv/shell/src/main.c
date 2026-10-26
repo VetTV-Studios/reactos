@@ -229,7 +229,8 @@ static void GameDone(void)
 
 static void ExitToDesktop(void)
 {
-    SetWindowPos(g_wnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    SetWindowPos(g_wnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
     ShowWindow(g_wnd, SW_HIDE); /* keep running; --activate brings it back */
     VtLog(L"exit to desktop");
 }
@@ -310,7 +311,10 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         if (wp == VK_F10) { ExitToDesktop(); return 0; } /* F10 arrives as a system key */
         break;
     case WM_LBUTTONDOWN:
-        if (!g_running) StartGame();
+        /* Only a click on the visible, active launcher starts a game; after
+           F10 a stray click (e.g. meant for the taskbar) must not. */
+        if (!g_running && IsWindowVisible(w) && GetForegroundWindow() == w)
+            StartGame();
         return 0;
     case WM_APP_DONE:
         GameDone();
