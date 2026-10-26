@@ -69,6 +69,7 @@ add_executable(vetvdm_test
     vetvdm/cmdline_norm.c
     vetvdm/cmdline_quote.c
     vetvdm/image.c
+    vetvdm/image_io.c
     vetvdm/route.c)
 set_module_type(vetvdm_test win32cui UNICODE)
 target_include_directories(vetvdm_test PRIVATE

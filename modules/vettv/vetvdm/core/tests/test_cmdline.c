@@ -17,6 +17,7 @@
 
 #include "cmdline.h"
 #include "image.h"
+#include "win32.h"
 #include "route.h"
 #include "vcore_util.h"
 
@@ -186,6 +187,34 @@ test_classify_and_route(void)
                              1, VETVDM_BIN_WOW, &cls) == VETVDM_KIND_DOS,
          "extender ne beats reactos wow");
     check(cls == VETVDM_IMG_DOS_MZ, "extender class");
+
+    /* Same path as a real launch: header read from disk, not a full buffer.
+       Jazz-like layout: NE at 0xE3E, ne_exetyp=1. */
+    {
+        static unsigned char f[0xE3E + 0x80];
+        WCHAR dir[MAX_PATH], path[MAX_PATH];
+        unsigned char *hdr = NULL;
+        DWORD hlen = 0, fsz = 0, wr = 0;
+        char sha[65];
+        HANDLE h;
+        memset(f, 0, sizeof(f));
+        f[0] = 'M'; f[1] = 'Z';
+        f[0x3C] = 0x3E; f[0x3D] = 0x0E;
+        f[0xE3E] = 'N'; f[0xE3F] = 'E'; f[0xE3E + 0x36] = 1;
+        GetTempPathW(MAX_PATH, dir);
+        GetTempFileNameW(dir, L"vvd", 0, path);
+        h = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        check(h != INVALID_HANDLE_VALUE, "disk ne temp file");
+        if (h != INVALID_HANDLE_VALUE)
+        {
+            WriteFile(h, f, sizeof(f), &wr, NULL);
+            CloseHandle(h);
+            check(vetvdm_load_image_info(path, &hdr, &hlen, sha, &fsz) == VETVDM_OK, "disk ne load");
+            check(hdr && vetvdm_classify_image(hdr, hlen) == VETVDM_IMG_DOS_MZ, "disk ne exetyp extender");
+            free(hdr);
+            DeleteFileW(path);
+        }
+    }
 
     sample(b, sizeof(b), 0, 0x40, "LE", 2);
     check(vetvdm_classify_image(b, sizeof(b)) == VETVDM_IMG_DOS_LE, "le");
