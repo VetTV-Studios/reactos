@@ -352,6 +352,24 @@ PropertyHandler_SpeakerGeometry(IN PPCPROPERTY_REQUEST PropertyRequest)
     return STATUS_NOT_SUPPORTED;
 }
 
+// VETTV(3i): reject GET/SET for channels the node doesn't have.
+// MMixer (sdk/lib/drivers/sound/mmixer/controls.c, MMixerGetChannelCountLegacy)
+// counts channels by issuing KSPROPERTY_AUDIO_VOLUMELEVEL GET with Channel 0,1,2...
+// until one fails. The volume handlers ignored the channel and always
+// succeeded, so that loop never ended (GUI setup hung at avifil32.dll with
+// 100% CPU in volume property IOCTLs).
+static BOOLEAN
+VettvIsChannelOutOfRange(IN PPCPROPERTY_REQUEST PropertyRequest, IN PNODE_CONTEXT NodeContext)
+{
+    if (PropertyRequest->Verb & KSPROPERTY_TYPE_BASICSUPPORT)
+        return FALSE;
+    if (!PropertyRequest->Instance || PropertyRequest->InstanceSize < sizeof(LONG))
+        return FALSE;
+    LONG Channel = *(PLONG)PropertyRequest->Instance;
+    ULONG ChannelCount = NodeContext->ChannelCount ? NodeContext->ChannelCount : 2;
+    return (Channel != -1 /* KSAUDIO_CHANNEL_MASTER-style "all" */ && (ULONG)Channel >= ChannelCount);
+}
+
 NTSTATUS
 NTAPI
 PropertyHandler_InputVolume(IN PPCPROPERTY_REQUEST PropertyRequest)
@@ -407,6 +425,12 @@ PropertyHandler_InputVolume(IN PPCPROPERTY_REQUEST PropertyRequest)
         double DBMin = -AmplifierCapabilities.Offset * DBStep;
         double DBRange = DBMax - DBMin;
         DPRINT("Step %f, Max %f, Min %f, Range %f\n", DBStep, DBMax, DBMin, DBRange);
+
+        if (VettvIsChannelOutOfRange(PropertyRequest, NodeContext))
+        {
+            Status = STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         UCHAR Gain;
         PLONG Value = (PLONG)PropertyRequest->Value;
@@ -697,6 +721,12 @@ PropertyHandler_OutputVolume(IN PPCPROPERTY_REQUEST PropertyRequest)
         double DBMin = -AmplifierCapabilities.Offset * DBStep;
         double DBRange = DBMax - DBMin;
         DPRINT("Step %f, Max %f, Min %f, Range %f\n", DBStep, DBMax, DBMin, DBRange);
+
+        if (VettvIsChannelOutOfRange(PropertyRequest, NodeContext))
+        {
+            Status = STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         UCHAR Gain;
         PLONG Value = (PLONG)PropertyRequest->Value;
