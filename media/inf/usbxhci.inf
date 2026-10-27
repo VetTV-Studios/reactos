@@ -1,0 +1,84 @@
+; USBXHCI.INF
+;
+; VetTV Retro OS: installation of the UCX-based USB 3.x (xHCI) stack.
+; Written from ReactOS INF conventions (see usbport.inf). Binds:
+;   PCI\CC_0C0330  -> usbxhci  (KMDF client of the Ucx class extension)
+;   USB\ROOT_HUB30 -> usbhub3  (root hub enumerated by ucx01000)
+; ucx01000 is not bound to a device; wdfldr loads it on demand through
+; HKLM\...\Control\Wdf\Kmdf\Ucx\Versions\1\1\Service (see AddReg below).
+; NOTE: upstream usbxhci/ucx01000/usbhub3 (#9623) are skeletons.
+
+[Version]
+Signature  = "$Windows NT$"
+LayoutFile = layout.inf
+Class      = USB
+ClassGUID  = {36FC9E60-C465-11CF-8056-444553540000}
+Provider   = %ReactOS%
+DriverVer  = 10/27/2026,1.00.0000.0
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[Manufacturer]
+%GenericMfg% = GenericMfg
+
+[GenericMfg]
+%PCI\CC_0C0330.DeviceDesc%=XHCI_Inst,PCI\CC_0C0330
+%USB\ROOT_HUB30.DeviceDesc%=RootHub30_Inst,USB\ROOT_HUB30
+
+;------------------------------ XHCI DRIVER -----------------------------
+
+[XHCI_Inst.NT]
+CopyFiles = XHCI_CopyFiles.NT
+AddReg    = UcxClass_AddReg
+
+[XHCI_CopyFiles.NT]
+usbxhci.sys
+ucx01000.sys
+
+[XHCI_Inst.NT.Services]
+AddService = usbxhci, 0x00000002, usbxhci_Service_Inst
+AddService = Ucx01000, , ucx01000_Service_Inst
+
+[usbxhci_Service_Inst]
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\usbxhci.sys
+LoadOrderGroup = Base
+
+[ucx01000_Service_Inst]
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\ucx01000.sys
+
+; Ucx class 1, KMDF major 1 -> service Ucx01000 (wdfldr GetClassServicePath)
+[UcxClass_AddReg]
+HKLM,"SYSTEM\CurrentControlSet\Control\Wdf\Kmdf\Ucx\Versions\1\1","Service",0x00000000,"Ucx01000"
+
+;------------------------- USB 3 ROOT HUB DRIVER ------------------------
+
+[RootHub30_Inst.NT]
+CopyFiles = RootHub30_CopyFiles.NT
+
+[RootHub30_CopyFiles.NT]
+usbhub3.sys
+
+[RootHub30_Inst.NT.Services]
+AddService = usbhub3, 0x00000002, usbhub3_Service_Inst
+
+[usbhub3_Service_Inst]
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\usbhub3.sys
+LoadOrderGroup = Base
+
+;-------------------------------- STRINGS -------------------------------
+
+[Strings]
+ReactOS = "ReactOS Project"
+GenericMfg = "(Generic USB devices)"
+PCI\CC_0C0330.DeviceDesc = "xHCI USB 3.0 controller"
+USB\ROOT_HUB30.DeviceDesc = "USB 3.0 Root Hub"

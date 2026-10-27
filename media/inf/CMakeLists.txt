@@ -27,6 +27,7 @@ list(APPEND INF_FILES
     unknown.inf
     usb.inf
     usbport.inf
+    usbxhci.inf  # VetTV: UCX xHCI stack (PCI\CC_0C0330)
     volume.inf
     wdmaudio.inf
     wmiacpi.inf)

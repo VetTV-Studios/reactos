@@ -47,6 +47,12 @@ HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\PCI#CC_0C0310","Cl
 HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\PCI#CC_0C0320","Service",0x00000000,"usbehci"
 HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\PCI#CC_0C0320","ClassGUID",0x00000000,"{36FC9E60-C465-11CF-8056-444553540000}"
 
+; VetTV: xHCI (UCX stack from upstream #9623) and its USB 3 root hub
+HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\PCI#CC_0C0330","Service",0x00000000,"usbxhci"
+HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\PCI#CC_0C0330","ClassGUID",0x00000000,"{36FC9E60-C465-11CF-8056-444553540000}"
+HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\USB#ROOT_HUB30","Service",0x00000000,"usbhub3"
+HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\USB#ROOT_HUB30","ClassGUID",0x00000000,"{36FC9E60-C465-11CF-8056-444553540000}"
+
 HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\USB#Class_08&SubClass_06&Prot_50","Service",0x00000000,"usbstor"
 HKLM,"SYSTEM\CurrentControlSet\Control\CriticalDeviceDatabase\USB#Class_08&SubClass_06&Prot_50","ClassGUID",0x00000000,"{36FC9E60-C465-11CF-8056-444553540000}"
 
@@ -1957,6 +1963,28 @@ HKLM,"SYSTEM\CurrentControlSet\Services\usbohci","Group",0x00000000,"Boot Bus Ex
 HKLM,"SYSTEM\CurrentControlSet\Services\usbohci","ImagePath",0x00020000,"system32\drivers\usbohci.sys"
 HKLM,"SYSTEM\CurrentControlSet\Services\usbohci","Start",0x00010001,0x00000000
 HKLM,"SYSTEM\CurrentControlSet\Services\usbohci","Type",0x00010001,0x00000001
+
+; VetTV: xHCI controller driver (KMDF, UCX client). Demand-start: PnP loads it
+; once wdfldr can ZwLoadDriver the Ucx class extension below.
+HKLM,"SYSTEM\CurrentControlSet\Services\usbxhci","ErrorControl",0x00010001,0x00000001
+HKLM,"SYSTEM\CurrentControlSet\Services\usbxhci","Group",0x00000000,"Base"
+HKLM,"SYSTEM\CurrentControlSet\Services\usbxhci","ImagePath",0x00020000,"system32\drivers\usbxhci.sys"
+HKLM,"SYSTEM\CurrentControlSet\Services\usbxhci","Start",0x00010001,0x00000003
+HKLM,"SYSTEM\CurrentControlSet\Services\usbxhci","Type",0x00010001,0x00000001
+
+; VetTV: UCX class extension, loaded by wdfldr (WdfVersionBindClass "Ucx" v1)
+HKLM,"SYSTEM\CurrentControlSet\Services\Ucx01000","ErrorControl",0x00010001,0x00000001
+HKLM,"SYSTEM\CurrentControlSet\Services\Ucx01000","ImagePath",0x00020000,"system32\drivers\ucx01000.sys"
+HKLM,"SYSTEM\CurrentControlSet\Services\Ucx01000","Start",0x00010001,0x00000003
+HKLM,"SYSTEM\CurrentControlSet\Services\Ucx01000","Type",0x00010001,0x00000001
+HKLM,"SYSTEM\CurrentControlSet\Control\Wdf\Kmdf\Ucx\Versions\1\1","Service",0x00000000,"Ucx01000"
+
+; VetTV: USB 3 root hub driver
+HKLM,"SYSTEM\CurrentControlSet\Services\usbhub3","ErrorControl",0x00010001,0x00000001
+HKLM,"SYSTEM\CurrentControlSet\Services\usbhub3","Group",0x00000000,"Base"
+HKLM,"SYSTEM\CurrentControlSet\Services\usbhub3","ImagePath",0x00020000,"system32\drivers\usbhub3.sys"
+HKLM,"SYSTEM\CurrentControlSet\Services\usbhub3","Start",0x00010001,0x00000003
+HKLM,"SYSTEM\CurrentControlSet\Services\usbhub3","Type",0x00010001,0x00000001
 
 ; UHCI controller driver
 HKLM,"SYSTEM\CurrentControlSet\Services\usbuhci","ErrorControl",0x00010001,0x00000001
