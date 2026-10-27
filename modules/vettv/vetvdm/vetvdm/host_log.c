@@ -88,7 +88,7 @@ write_log(host *st, DWORD code)
 
     if (st->cmd.from_hook)
         caller = "hook";
-    else if (st->cmd.profile[0])
+    else if (st->cmd.from_shell || st->cmd.profile[0])
         caller = "shell";
     else
         caller = "cli";
