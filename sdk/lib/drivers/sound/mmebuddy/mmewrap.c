@@ -24,6 +24,7 @@ MmeSetState(
     PMMFUNCTION_TABLE FunctionTable;
     PSOUND_DEVICE SoundDevice;
     PSOUND_DEVICE_INSTANCE SoundDeviceInstance;
+    MMDEVICE_TYPE DeviceType;
     BOOL OldState;
 
     VALIDATE_MMSYS_PARAMETER( PrivateHandle );
@@ -32,6 +33,10 @@ MmeSetState(
     VALIDATE_MMSYS_PARAMETER( IsValidSoundDeviceInstance(SoundDeviceInstance) );
 
     Result = GetSoundDeviceFromInstance(SoundDeviceInstance, &SoundDevice);
+    if ( ! MMSUCCESS(Result) )
+        return TranslateInternalMmResult(Result);
+
+    Result = GetSoundDeviceType(SoundDevice, &DeviceType);
     if ( ! MMSUCCESS(Result) )
         return TranslateInternalMmResult(Result);
 
@@ -57,9 +62,23 @@ MmeSetState(
         /* Store audio stream pause state */
         SoundDeviceInstance->bPaused = !bStart;
 
-        if (SoundDeviceInstance->bPaused == FALSE && OldState)
+        if (SoundDeviceInstance->bPaused == FALSE && (OldState || DeviceType == WAVE_IN_DEVICE_TYPE))
         {
-            InitiateSoundStreaming(SoundDeviceInstance);
+            if (SoundDeviceInstance->RTStreamingEnabled)
+            {
+                InitiateSoundStreaming(SoundDeviceInstance);
+            }
+            else
+            {
+                /* Legacy (WaveCyclic/WavePci, e.g. AC97) streaming completes
+                   each commit by an APC to the thread that issued it, so it
+                   must run on the sound thread, which waits alertably. On the
+                   short-lived InitiateSoundStreaming worker the APCs were lost
+                   when it exited: no buffer ever completed after
+                   waveOutRestart, so DirectSound/SDL clients (DOSBox-X) that
+                   open paused and then restart played silence. */
+                CallSoundThread(SoundDeviceInstance, PerformWaveStreaming, NULL);
+            }
         }
     }
 
