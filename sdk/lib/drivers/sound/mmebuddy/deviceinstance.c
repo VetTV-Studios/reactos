@@ -276,6 +276,15 @@ DestroySoundDeviceInstance(
 
     SoundDeviceInstance->bClosed = TRUE;
 
+    /* Join the RT streaming worker before the device and instance go away;
+       it sees bClosed and stops committing. */
+    if (SoundDeviceInstance->hSoundThread)
+    {
+        WaitForSingleObject(SoundDeviceInstance->hSoundThread, INFINITE);
+        CloseHandle(SoundDeviceInstance->hSoundThread);
+        SoundDeviceInstance->hSoundThread = NULL;
+    }
+
     /* Stop the streaming thread */
     if ( SoundDeviceInstance->Thread )
     {

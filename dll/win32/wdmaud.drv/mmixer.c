@@ -1180,20 +1180,6 @@ typedef struct
 
 DWORD
 WINAPI
-CommitLegacyRoutine(
-    IN LPVOID Parameter)
-{
-    PSOUND_OVERLAPPED Overlap = (PSOUND_OVERLAPPED)Parameter;
-    DPRINT1("CommitLegacyRoutine Before wait\n");
-    /* Wait for the I/O to complete */
-    WaitForSingleObjectEx(Overlap->Standard.hEvent, INFINITE, TRUE);
-    DPRINT1("CommitLegacyRoutine after wait\n");
-    CommitWaveBufferApc(NULL, (PIO_STATUS_BLOCK)Overlap, 0);
-    ExitThread(0);
-}
-
-DWORD
-WINAPI
 RTStreamingCompletionThreadProc(
     IN  PVOID Parameter)
 {
@@ -1349,21 +1335,28 @@ WdmAudCommitWaveBufferByMMixer(
         {
             lpHeader->DataUsed = Length;
         }
-        Overlap->Standard.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-        Status = NtDeviceIoControlFile(
-            SoundDeviceInstance->Handle, Overlap->Standard.hEvent, NULL, NULL, (PIO_STATUS_BLOCK)Overlap, IoCtl, NULL, 0,
-            lpHeader, sizeof(KSSTREAM_HEADER));
-
-        if (!NT_SUCCESS(Status) && GetLastError() != ERROR_IO_PENDING )
+        /* Complete via APC on the calling thread (mmebuddy's sound thread,
+         * which waits alertably), as upstream does. The old detached
+         * CommitLegacyRoutine thread per buffer ran CompleteIO concurrently
+         * with the sound thread and after the instance was destroyed
+         * (use-after-free in CompleteIO, wdmaud.drv+0x7e0e/+0x7e34). */
+        Status = NtDeviceIoControlFile(SoundDeviceInstance->Handle,
+                                       NULL,
+                                       CommitWaveBufferApc,
+                                       NULL,
+                                       (PIO_STATUS_BLOCK)Overlap,
+                                       IoCtl,
+                                       NULL,
+                                       0,
+                                       lpHeader,
+                                       sizeof(KSSTREAM_HEADER));
+        if (!NT_SUCCESS(Status))
         {
-            DPRINT("Failed %x\n", GetLastError());
-            CloseHandle(Overlap->Standard.hEvent);
+            DPRINT1("NtDeviceIoControlFile() failed with status %08lx\n", Status);
+            HeapFree(GetProcessHeap(), 0, lpHeader);
             return MMSYSERR_ERROR;
         }
 
-        HANDLE hThread = CreateThread(NULL, 0, CommitLegacyRoutine, (LPVOID)Overlap, 0, NULL);
-        CloseHandle(hThread);
         return MMSYSERR_NOERROR;
     }
     else
