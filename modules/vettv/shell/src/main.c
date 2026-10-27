@@ -211,6 +211,17 @@ static void StartGame(void)
     ShowWindow(g_wnd, SW_HIDE); /* no rendering while a game runs */
 }
 
+/* Size the launcher to the whole screen and put it above the taskbar.
+ * Called on every show and on WM_DISPLAYCHANGE: on a first boot onto AHCI the
+ * display mode can change after we were created, which left the taskbar over
+ * our bottom edge (qa3e). */
+static void CoverScreen(void)
+{
+    SetWindowPos(g_wnd, HWND_TOPMOST, 0, 0,
+                 GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+                 SWP_SHOWWINDOW);
+}
+
 static void GameDone(void)
 {
     WCHAR err[512];
@@ -221,8 +232,7 @@ static void GameDone(void)
         wsprintfW(g_status, L"Played %s for %lu min.", g_lib.games[g_launchIdx].title, g_result.seconds / 60);
     else
         wsprintfW(g_status, L"Back from %s.", g_lib.games[g_launchIdx].title);
-    ShowWindow(g_wnd, SW_SHOW);
-    SetWindowPos(g_wnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    CoverScreen();
     SetForegroundWindow(g_wnd);
     InvalidateRect(g_wnd, NULL, FALSE);
 }
@@ -239,8 +249,7 @@ static void Activate(void)
 {
     if (g_running)
         return;
-    ShowWindow(g_wnd, SW_SHOW);
-    SetWindowPos(g_wnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    CoverScreen();
     SetForegroundWindow(g_wnd);
 }
 
@@ -286,6 +295,10 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         EndPaint(w, &ps);
         return 0;
     }
+    case WM_DISPLAYCHANGE:
+        if (IsWindowVisible(w))
+            CoverScreen();
+        return 0;
     case WM_ERASEBKGND:
         return 1;
     case WM_TIMER:
@@ -389,6 +402,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     if (!g_wnd)
         return 1;
     ShowWindow(g_wnd, SW_SHOW);
+    CoverScreen(); /* the taskbar may have come up after we were created */
     SetForegroundWindow(g_wnd);
     SetTimer(g_wnd, 1, 30000, NULL);
     /* --no-kbhook: debug switch so QA/Build can rule the quit-combo hook in
