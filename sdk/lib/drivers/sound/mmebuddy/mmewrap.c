@@ -64,7 +64,21 @@ MmeSetState(
 
         if (SoundDeviceInstance->bPaused == FALSE && (OldState || DeviceType == WAVE_IN_DEVICE_TYPE))
         {
-            InitiateSoundStreaming(SoundDeviceInstance);
+            if (SoundDeviceInstance->RTStreamingEnabled)
+            {
+                InitiateSoundStreaming(SoundDeviceInstance);
+            }
+            else
+            {
+                /* Legacy (WaveCyclic/WavePci, e.g. AC97) streaming completes
+                   each commit by an APC to the thread that issued it, so it
+                   must run on the sound thread, which waits alertably. On the
+                   short-lived InitiateSoundStreaming worker the APCs were lost
+                   when it exited: no buffer ever completed after
+                   waveOutRestart, so DirectSound/SDL clients (DOSBox-X) that
+                   open paused and then restart played silence. */
+                CallSoundThread(SoundDeviceInstance, PerformWaveStreaming, NULL);
+            }
         }
     }
 
