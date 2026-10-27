@@ -226,6 +226,9 @@ HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer","NoSimpleStartMenu",0x00010003,1
 
+; VetTV: suppress the New Hardware Wizard for driverless devices (read by umpnpmgr GetSuppressNewUIValue)
+HKLM,"SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings","SuppressNewHWUI",0x00010001,1
+
 ; Application compatibility
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\ShellCompatibility",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\ShellCompatibility\Applications",,0x00000012

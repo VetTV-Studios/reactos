@@ -53,6 +53,9 @@ HKR, , Icon,           0, "-27"
 %SWENUM.DeviceDesc%   = SWENUM_Inst, ROOT\SWENUM
 %ACPI\FixedButton.DeviceDesc% = NO_DRV,ACPI\FixedButton
 %ACPI\QEMU0002.DeviceDesc% = NO_DRV,ACPI\QEMU0002
+; VetTV: handled inside acpi.sys (ACPICA), no function driver needed
+%ACPI\PNP0C09.DeviceDesc% = NO_DRV,ACPI\PNP0C09
+%ACPI\ACPI_PWR.DeviceDesc% = NO_DRV,ACPI\ACPI_PWR
 %ISAPNP\ReadDataPort.DeviceDesc% = NO_DRV,ISAPNP\ReadDataPort
 %PCI\CC_0500.DeviceDesc% = NO_DRV,PCI\CC_0500
 %PCI\CC_0600.DeviceDesc% = NO_DRV,PCI\CC_0600
@@ -71,6 +74,14 @@ HKR, , Icon,           0, "-27"
 %PCI\VEN_8086&DEV_7180.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_7180
 %PCI\VEN_8086&DEV_7190.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_7190
 %PCI\VEN_8086&DEV_7192.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_7192
+; VetTV: Skylake/HM170 functions with no ReactOS driver (Asus GL552VW qa3f dump)
+%PCI\VEN_8086&DEV_1903.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_1903
+%PCI\VEN_8086&DEV_1911.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_1911
+%PCI\VEN_8086&DEV_A121.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_A121
+%PCI\VEN_8086&DEV_A123.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_A123
+%PCI\VEN_8086&DEV_A131.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_A131
+%PCI\VEN_8086&DEV_A13A.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_A13A
+%PCI\VEN_8086&DEV_A161.DeviceDesc% = NO_DRV,PCI\VEN_8086&DEV_A161
 
 [NecMfg]
 %NecCb.DeviceDesc% = PCI_ISA_Inst,PCI\VEN_1033&DEV_0001
@@ -200,6 +211,15 @@ GenericMfg = "(Generic system devices)"
 SWENUM.DeviceDesc  = "Plug & Play Software Bus Enumerator"
 ACPI\FixedButton.DeviceDesc = "ACPI fixed feature button"
 ACPI\QEMU0002.DeviceDesc = "QEMU firmware configuration device"
+ACPI\PNP0C09.DeviceDesc = "ACPI embedded controller"
+ACPI\ACPI_PWR.DeviceDesc = "ACPI power resource"
+PCI\VEN_8086&DEV_1903.DeviceDesc = "Intel Skylake processor thermal subsystem"
+PCI\VEN_8086&DEV_1911.DeviceDesc = "Intel Skylake Gaussian Mixture Model"
+PCI\VEN_8086&DEV_A121.DeviceDesc = "Intel 100 Series PCH power management controller"
+PCI\VEN_8086&DEV_A123.DeviceDesc = "Intel 100 Series PCH SMBus controller"
+PCI\VEN_8086&DEV_A131.DeviceDesc = "Intel 100 Series PCH thermal subsystem"
+PCI\VEN_8086&DEV_A13A.DeviceDesc = "Intel 100 Series PCH Management Engine Interface"
+PCI\VEN_8086&DEV_A161.DeviceDesc = "Intel 100 Series PCH Serial IO I2C controller #1"
 ISAPNP\ReadDataPort.DeviceDesc = "ISAPNP read data port"
 PCI\CC_0500.DeviceDesc = "Standard PCI RAM controller"
 PCI\CC_0600.DeviceDesc = "Standard CPU to PCI bridge"

@@ -1,0 +1,35 @@
+; VetTV Retro OS - USB installer payload: clean unattended setup (no test runner).
+; Injected as \i386\unattend.inf into a copy of the input ISO by build-retroos-disk.sh.
+; Based on boot/bootdata/bootcd/unattend.inf (GPL-2.0-or-later, ReactOS project).
+[Unattend]
+Signature = "$ReactOS$"
+UnattendSetupEnabled = yes
+
+; Disk is blank at stage 1; setup auto-creates partition 1 on all of it (ReactOS system, active).
+DestinationDiskNumber = 0
+DestinationPartitionNumber = 1
+InstallationDirectory=ReactOS
+
+; 2 = MBR + VBR on the system partition
+BootLoaderLocation=2
+
+FullName="VetTV"
+ComputerName="VETTV-RETRO"
+
+; 20 = (GMT-06:00) Central Time (Vet is in Chicago)
+TimeZoneIndex=20
+
+FormatPartition=1
+AutoPartition = 1
+; 0 = FAT (FAT32 for this size)
+FsType = 0
+RappsDownload = no
+LocaleID = 409
+; 1 = ReactOS Workstation
+InstallationType = 1
+
+[Display]
+BitsPerPel = 32
+XResolution = 800
+YResolution = 600
+VRefresh = 0
