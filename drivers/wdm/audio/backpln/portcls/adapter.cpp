@@ -310,8 +310,13 @@ PcRegisterSubdevice(
         }
     }
 
-    // release SubDevice reference
-    SubDevice->Release();
-
+    // VETTV(3i): keep the ISubdevice reference from the QueryInterface above.
+    // The create item registered with KsAddObjectCreateItemToDeviceHeader stores
+    // SubDevice as its Context and PcCreateItemDispatch uses it on every open,
+    // so the create item must own a reference. Releasing it here only worked
+    // while RegisterConnection leaked two references per physical connection;
+    // #8662 fixed that leak, so ports were freed after the adapter released its
+    // own references and the next filter open (winmm/wdmaud) hit freed memory
+    // in PcCreateItemDispatch (page fault, port_topology.cpp).
     return STATUS_SUCCESS;
 }
