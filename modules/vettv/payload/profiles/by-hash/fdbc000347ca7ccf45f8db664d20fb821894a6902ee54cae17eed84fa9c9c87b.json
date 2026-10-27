@@ -1,6 +1,10 @@
 {
   "id": "lure-of-the-temptress",
-  "match": { "sha256": "fdbc000347ca7ccf45f8db664d20fb821894a6902ee54cae17eed84fa9c9c87b", "name": "LURE.EXE" },
+  "match": {
+    "sha256": "fdbc000347ca7ccf45f8db664d20fb821894a6902ee54cae17eed84fa9c9c87b",
+    "name": "LURE.EXE",
+    "size": 136956
+  },
   "layer": "dosboxx",
   "dosbox": {
     "sbtype": "sb16",
