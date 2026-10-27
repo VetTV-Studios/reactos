@@ -289,8 +289,18 @@ static void Move(int dShelf, int dCol)
     InvalidateRect(g_wnd, NULL, FALSE);
 }
 
+static UINT g_msgTaskbarCreated; /* registered "TaskbarCreated" */
+#define TIMER_RAISE 2
+static int g_raiseTicks;           /* startup re-raise passes left */
+
 static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
 {
+    /* Explorer's taskbar is topmost too; when it is created after us it
+       lands above the launcher and hides the hint line (QA 158bdce41d). */
+    if (g_msgTaskbarCreated && m == g_msgTaskbarCreated) {
+        if (IsWindowVisible(w) && !g_running) CoverScreen();
+        return 0;
+    }
     switch (m) {
     case WM_PAINT: {
         PAINTSTRUCT ps;
@@ -308,6 +318,13 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
     case WM_ERASEBKGND:
         return 1;
     case WM_TIMER:
+        if (wp == TIMER_RAISE) {
+            /* Fallback for shells that don't broadcast TaskbarCreated. */
+            if (IsWindowVisible(w) && !g_running && GetForegroundWindow() == w)
+                CoverScreen();
+            if (--g_raiseTicks <= 0) KillTimer(w, TIMER_RAISE);
+            return 0;
+        }
         InvalidateRect(w, NULL, FALSE); /* clock, once a minute is plenty */
         return 0;
     case WM_KEYDOWN:
@@ -403,6 +420,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     RegisterClassW(&wc);
 
     Reload();
+    g_msgTaskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
     g_wnd = CreateWindowExW(WS_EX_TOPMOST, wc.lpszClassName, L"VetTV Launcher", WS_POPUP,
                             0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
                             NULL, NULL, inst, NULL);
@@ -412,6 +430,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     CoverScreen(); /* the taskbar may have come up after we were created */
     SetForegroundWindow(g_wnd);
     SetTimer(g_wnd, 1, 30000, NULL);
+    g_raiseTicks = 20; /* every 500 ms for the first 10 s */
+    SetTimer(g_wnd, TIMER_RAISE, 500, NULL);
     /* --no-kbhook: debug switch so QA/Build can rule the quit-combo hook in
        or out of keyboard problems. The quit combo is unavailable with it. */
     if (argv && argc >= 2 && !lstrcmpiW(argv[1], L"--no-kbhook")) {
