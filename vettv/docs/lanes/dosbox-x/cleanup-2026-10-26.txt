@@ -1,0 +1,6 @@
+# DOSBox-X Integration cleanup, 2026-10-26 (written after deletion; Lead's list-first rule arrived after)
+# sha256 prefix, path (relative to lanes/dosbox-x)
+fc0120238e76837b companion/R-6/test/anyletter-D/anyletter-d-test.img
+6948f9a46d939845 research/qemu-smoke/freedos-doom.vhd
+c48a9dcf4b8e22f4 research/qemu-smoke/FD14LIVE.iso
+/tmp/vetvdm3c.exe (my own scratch build)

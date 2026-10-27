@@ -1,0 +1,4 @@
+7e890426fd6df23472ccec8f74dd1a9f70e30345613e5d4fbc645f739f940fb4  vettv-retroos-installer.img
+e8632289070cb9f74a79ede1d9a3f11a28890ee9dcb346615e696a6e65f1b165  vettv-retroos-installer.img.xz
+9109e1c15eaae5c732e87c1da74dc27c37b3174700c002ac6f6e8c886140f282  retroos-disk.img
+177750588fb85968070f47ceb6e000acc99abd636a16039f44be3e233e8d08af  retroos-disk.img.gz
