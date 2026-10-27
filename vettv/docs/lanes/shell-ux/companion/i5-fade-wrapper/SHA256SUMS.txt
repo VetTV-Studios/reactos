@@ -1,0 +1,2 @@
+1bda1a60ba54bf14e1d21b2ecd8bd4af8218b832a5cf1e9b51471a7890d825e4  vettv-instant-i686.exe
+354d9c881e8773cf3fb16c29ffc05eba072781f7ea46f2ab9e46cad7b7121c68  vettv-instant-x64.exe
