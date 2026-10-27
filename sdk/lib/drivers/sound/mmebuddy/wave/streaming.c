@@ -81,7 +81,8 @@ DoWaveStreaming(
     }
 
     while ((SoundDeviceInstance->OutstandingBuffers < SoundDeviceInstance->BufferCount) &&
-           (Header) && SoundDeviceInstance->ResetInProgress == FALSE)
+           (Header) && SoundDeviceInstance->ResetInProgress == FALSE &&
+           SoundDeviceInstance->bClosed == FALSE)
     {
         if (SoundDeviceInstance->RTStreamingEnabled)
         {
@@ -163,12 +164,16 @@ DoWaveStreaming(
 
                 if (!OK)
                 {
-                    /* Clean-up and try again on the next iteration (is this OK?) */
+                    /* Undo and stop. Retrying the same header in a loop never
+                       succeeds (device closed, reset or not streaming) and kept
+                       this thread running against a freed instance. The next
+                       enqueue/completion restarts streaming. */
                     SND_WARN(L"FAILED\n");
 
                     FreeMemory(Overlap);
                     HeaderExtension->BytesCommitted -= BytesToCommit;
                     -- SoundDeviceInstance->OutstandingBuffers;
+                    break;
                 }
             }
         }
@@ -435,12 +440,10 @@ WaveActivateSoundStreaming(
 {
     PSOUND_DEVICE_INSTANCE SoundDeviceInstance = (PSOUND_DEVICE_INSTANCE)lpParameter;
 
+    /* The handle stays in hSoundThread; InitiateSoundStreaming and
+       DestroySoundDeviceInstance join and close it, so the instance is never
+       freed while this thread still streams from it. */
     PerformWaveStreaming(SoundDeviceInstance, NULL);
-    if (SoundDeviceInstance->hSoundThread != NULL)
-    {
-        CloseHandle(SoundDeviceInstance->hSoundThread);
-        SoundDeviceInstance->hSoundThread = NULL;
-    }
     ExitThread(0);
 }
 
@@ -448,6 +451,15 @@ VOID
 InitiateSoundStreaming(
     IN  PSOUND_DEVICE_INSTANCE SoundDeviceInstance)
 {
-    if (SoundDeviceInstance->hSoundThread == NULL)
-        SoundDeviceInstance->hSoundThread = CreateThread(NULL, 0, WaveActivateSoundStreaming, (PVOID)SoundDeviceInstance, 0, NULL);
+    if (SoundDeviceInstance->hSoundThread != NULL)
+    {
+        /* Still streaming? It picks up newly queued headers itself */
+        if (WaitForSingleObject(SoundDeviceInstance->hSoundThread, 0) != WAIT_OBJECT_0)
+            return;
+        CloseHandle(SoundDeviceInstance->hSoundThread);
+        SoundDeviceInstance->hSoundThread = NULL;
+    }
+    if (SoundDeviceInstance->bClosed)
+        return;
+    SoundDeviceInstance->hSoundThread = CreateThread(NULL, 0, WaveActivateSoundStreaming, (PVOID)SoundDeviceInstance, 0, NULL);
 }
