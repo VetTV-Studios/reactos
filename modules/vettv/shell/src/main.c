@@ -242,6 +242,12 @@ static void ExitToDesktop(void)
     SetWindowPos(g_wnd, HWND_NOTOPMOST, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
     ShowWindow(g_wnd, SW_HIDE); /* keep running; --activate brings it back */
+    {
+        /* Hand focus to the desktop so keys stop reaching the hidden
+           launcher (QA r12f10ret: Enter after F10 started a game). */
+        HWND tray = FindWindowW(L"Shell_TrayWnd", NULL);
+        if (tray) SetForegroundWindow(tray);
+    }
     VtLog(L"exit to desktop");
 }
 
@@ -305,7 +311,8 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         InvalidateRect(w, NULL, FALSE); /* clock, once a minute is plenty */
         return 0;
     case WM_KEYDOWN:
-        if (g_running) return 0;
+        /* Hidden or not the active window (after F10): ignore all keys. */
+        if (g_running || !IsWindowVisible(w) || GetForegroundWindow() != w) return 0;
         switch (wp) {
         case VK_LEFT: Move(0, -1); break;
         case VK_RIGHT: Move(0, 1); break;
