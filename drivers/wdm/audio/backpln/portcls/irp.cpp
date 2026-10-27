@@ -194,27 +194,30 @@ PwrCompletionFunction(
     IN PVOID Context,
     IN PIO_STATUS_BLOCK IoStatus)
 {
+    NTSTATUS Status;
     PQUERY_POWER_CONTEXT PwrContext = (PQUERY_POWER_CONTEXT)Context;
-    PIRP Irp = PwrContext->Irp;
-    PPCLASS_DEVICE_EXTENSION DeviceExtension = (PPCLASS_DEVICE_EXTENSION)PwrContext->DeviceObject->DeviceExtension;
 
-    FreeItem(PwrContext, TAG_PORTCLASS);
-
-    // VetTV: this runs from the D-IRP's completion, possibly at
-    // DISPATCH_LEVEL, so pass the pending S-IRP down asynchronously instead
-    // of waiting for it (PcForwardIrpSynchronous here hung shutdown once the
-    // D-IRP actually succeeded). A system set always goes down.
+    // A system set must always go down the stack, even if our D-IRP failed
     if (NT_SUCCESS(IoStatus->Status) || MinorFunction == IRP_MN_SET_POWER)
     {
-        PoStartNextPowerIrp(Irp);
-        IoSkipCurrentIrpStackLocation(Irp);
-        PoCallDriver(DeviceExtension->PrevDeviceObject, Irp);
-        return;
+        // forward request to lower device object
+        Status = PcForwardIrpSynchronous(PwrContext->DeviceObject, PwrContext->Irp);
+    }
+    else
+    {
+        // failed
+        Status = IoStatus->Status;
     }
 
-    PoStartNextPowerIrp(Irp);
-    Irp->IoStatus.Status = IoStatus->Status;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    // start next power irp
+    PoStartNextPowerIrp(PwrContext->Irp);
+
+    // complete request
+    PwrContext->Irp->IoStatus.Status = Status;
+    IoCompleteRequest(PwrContext->Irp, IO_NO_INCREMENT);
+
+    // free context
+    FreeItem(PwrContext, TAG_PORTCLASS);
 }
 
 NTSTATUS
