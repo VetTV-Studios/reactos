@@ -205,6 +205,7 @@ CompleteIO(
     PSOUND_DEVICE_INSTANCE SoundDeviceInstance;
     PSOUND_OVERLAPPED SoundOverlapped = (PSOUND_OVERLAPPED) lpOverlapped;
     PWAVEHDR WaveHdr;
+    PWAVEHDR NextHdr = NULL;
     PWAVEHDR_EXTENSION HdrExtension;
     MMRESULT Result;
     DWORD Bytes;
@@ -236,8 +237,11 @@ CompleteIO(
             Bytes = WaveHdr->dwBufferLength - HdrExtension->BytesCompleted;
             HdrExtension->BytesCompleted += Bytes;
             dwNumberOfBytesTransferred -= Bytes;
-            CompleteWaveHeader(SoundDeviceInstance, WaveHdr);
             SND_TRACE(L"%d/%d bytes of wavehdr completed\n", HdrExtension->BytesCompleted, WaveHdr->dwBufferLength);
+            /* The header goes back to the client (WOM_DONE) and may be
+               unprepared or freed, so fetch the next one first */
+            NextHdr = WaveHdr->lpNext;
+            CompleteWaveHeader(SoundDeviceInstance, WaveHdr);
         }
 		else
 		{
@@ -263,7 +267,7 @@ CompleteIO(
 		}
 
         /* Move to next wave header */
-        WaveHdr = WaveHdr->lpNext;
+        WaveHdr = NextHdr;
 
         if (!WaveHdr)
 		{
