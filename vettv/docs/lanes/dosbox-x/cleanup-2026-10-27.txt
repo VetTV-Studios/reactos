@@ -1,0 +1,8 @@
+# 2026-10-27 1:35 AM CT, Vet-approved disk cleanup (own files only; rebuildable from pinned archives)
+111M research/prebuilt/mingw32
+103M research/prebuilt/mingw32_lowend
+51M research/prebuilt/mingw32_lowend9x
+108M research/prebuilt/mingw64
+102M research/prebuilt/vsbuild-win32
+118M research/prebuilt/winXP
+365M research/src/dosbox-x-dosbox-x-v2026.10.01
