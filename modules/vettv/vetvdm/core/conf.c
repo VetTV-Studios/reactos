@@ -300,6 +300,8 @@ apply_locks(conf_doc *doc, vcore_lock_report *locks)
                 int k;
                 if (locks && is_mapperfile_key(sec->key[i]))
                     locks->stripped_mapperfile++;
+                else if (locks && !vcore_cstr_ieq(sec->val[i], "mapper"))
+                    locks->forced_hostkey++; /* [sdl] hostkey from template or extra */
                 for (k = i + 1; k < sec->nkeys; k++)
                 {
                     memcpy(sec->key[k - 1], sec->key[k], KEYN_MAX);
@@ -309,6 +311,23 @@ apply_locks(conf_doc *doc, vcore_lock_report *locks)
                 continue;
             }
             i++;
+        }
+    }
+
+    /*
+     * output=opengl* crashes dosbox-x on ReactOS (bk-stall C) and pops the
+     * "needs OpenGL 2.0" box (QA qa3d). Catch it from the template and
+     * extra passthrough too, not only the profile field.
+     */
+    {
+        conf_section *sdl = find_sec(doc, "sdl", 0);
+        for (i = 0; sdl && i < sdl->nkeys; i++)
+        {
+            if (vcore_cstr_ieq(sdl->key[i], "output") &&
+                (vcore_cstr_ieq(sdl->val[i], "opengl") ||
+                 vcore_cstr_ieq(sdl->val[i], "openglnb") ||
+                 vcore_cstr_ieq(sdl->val[i], "openglpp")))
+                set_key(doc, "sdl", "output", "surface");
         }
     }
 
