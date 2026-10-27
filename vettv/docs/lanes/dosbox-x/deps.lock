@@ -1,0 +1,104 @@
+# VetTV Retro OS — third-party payload pins (DRAFT for P-1; final copy moves to modules/vettv/deps.lock in M1-1)
+# Verified Fri Oct 2, 2026 ~2:10 PM PT by RetroOS DOSBox-X Integration.
+# sha256 = computed locally on the box; upstream_digest = GitHub release-asset digest where GitHub publishes one.
+# Local copies: lanes/dosbox-x/downloads/ (never committed; SHA256SUMS.txt alongside).
+
+[dosbox-x]
+version         = 2026.10.01
+tag             = dosbox-x-v2026.10.01
+tag_commit      = b6abbd5980a885f5f310a4088c59a8688d1b116c
+branch          = master            # not main-osfree
+published       = 2026-10-01 19:29:52 PT
+repo            = https://github.com/joncampbell123/dosbox-x
+license         = GPL-2.0-or-later (COPYING = GPLv2)
+
+  [dosbox-x.payload]                # PRIMARY: XP-compatible 32-bit portable build
+  asset           = dosbox-x-winXP-2026.10.01-portable.zip
+  url             = https://github.com/joncampbell123/dosbox-x/releases/download/dosbox-x-v2026.10.01/dosbox-x-winXP-2026.10.01-portable.zip
+  size            = 51944566
+  sha256          = c2c3223d581b10a62438041d205f1e365d271b89d8bfcdd19f89dfb73b4b4467
+  upstream_digest = match
+  exe_default     = dosbox-x_XPx86_SDL2.exe   sha256=2fb2be6330f134b3c243a0acd079a314ef6657035f2c8d987251be7df2c70fad  PE i386, OS/subsystem 5.1
+  exe_fallback    = dosbox-x_XPx86_SDL1.exe   sha256=6edf379673f7d4f1e7a199fe0e2165e2c13debe57c91d4b8d99bba81694541c5  PE i386, OS/subsystem 5.1
+  imports_note    = SDL2 exe imports only stock NT5 DLLs (ADVAPI32 COMDLG32 DSOUND GDI32 IMM32 IPHLPAPI KERNEL32 OLEAUT32 OPENGL32 SETUPAPI SHELL32 SHLWAPI USER32 VERSION WINMM WINSPOOL WS2_32 ole32). No MSVC runtime, no static XInput import.
+  exclude         = dosbox-x_XPx64_*.exe (we are i386-only), inpout32.dll (parallel-port driver DLL, separate licence, not needed — pending M1-7 audit)
+
+  [dosbox-x.installer]              # ALTERNATIVE for the addons.c pattern (Inno Setup 5.5.x, supports /VERYSILENT)
+  asset           = dosbox-x-winXP-2026.10.01-setup.exe
+  url             = https://github.com/joncampbell123/dosbox-x/releases/download/dosbox-x-v2026.10.01/dosbox-x-winXP-2026.10.01-setup.exe
+  size            = 53627312
+  sha256          = 06e189e5d7058d9d9fc780ce56848dad0d2b42bfceca1e7d92a6d46953731c27
+  upstream_digest = match
+  note            = contents not yet inspected (need innoextract); may include x64 exe + inpout32.dll
+
+  [dosbox-x.alt-builds]             # for the "experimental on ReactOS" risk (BRIEF §10) — QA A/B only
+  dosbox-x-mingw32_lowend9x-2026.10.01-portable.zip  size=21542737  sha256=c57a7a3d3d884a21bef89cbe7193eba45d31fdcd6a0675d1d68a7a3a5606ba7d  upstream_digest=match
+  dosbox-x-vsbuild-win32-2026.10.01-portable.zip     size=42083223  sha256=25724d9949cc28e97b7f1eea7d655908904212559eaa153a329688966b2370be  upstream_digest=match
+
+  [dosbox-x.source]                 # GPL corresponding source
+  url             = https://codeload.github.com/joncampbell123/dosbox-x/tar.gz/refs/tags/dosbox-x-v2026.10.01
+  file            = dosbox-x-src-dosbox-x-v2026.10.01.tar.gz
+  size            = 133327878
+  sha256          = df023a6c0e4a139dcbd60befff5947e0db2cc68e4e79db463670f581a4044ed4
+  note            = GitHub-generated tarballs are NOT guaranteed byte-stable; the real pin is tag_commit. Keep this exact file in our source-offer bundle.
+
+[winevdm]
+repo            = https://github.com/otya128/winevdm
+license         = GPL-2.0 (LICENSE = GPLv2 text, identical in both zips); Wine-derived parts LGPL-2.1+
+
+  [winevdm.upstream-reactos]        # WHAT REACTOS ACTUALLY WIRES UP TODAY (rapps-db winevdm.txt; addons.c runs it with /VERYSILENT)
+  version         = 0.8.1
+  url             = https://github.com/peterooch/winevdm_installer/releases/download/0.8.1-gcc-v2/winevdm_setup.exe
+  size            = 3304645
+  sha1            = 9A23BB67E3A26A6C56834972CD06A3D2AF5F9B0E   (from rapps-db; sha256 not yet computed)
+  note            = Inno wrapper by a ReactOS dev, gcc build of 0.8.1 (2021-11-23). Not downloaded yet.
+
+  [winevdm.v0.9.0-old-windows]      # BRIEF target: build "for ReactOS, and Windows versions before Vista"
+  version         = 0.9.0
+  tag_commit      = e9e87734fd36eaa5c2e38d299a8cdc20786f4783
+  url             = https://github.com/otya128/winevdm/files/12619170/otvdm-for-old-windows-v0.9.0.zip
+  size            = 6801387
+  sha256          = 79b1a4f992f8ff1f3b23f013c24c6640c22563b71c4dcb363b06f10ab0937205
+  upstream_digest = none (issue attachment linked from the release notes, not a release asset)
+  caveat          = zip root is "otvdm-cmake-gcc-master-2446" (CI build #2446, files dated 2023-08-07) — exact source commit for #2446 still to be confirmed before we can ship it under GPL
+
+  [winevdm.v0.9.0-standard]         # reference only; README says it needs VCRUNTIME140.dll (Microsoft redist — we must NOT ship that)
+  url             = https://github.com/otya128/winevdm/releases/download/v0.9.0/otvdm-v0.9.0.zip
+  size            = 1534798
+  sha256          = 842b11aed5fa81f3e1d4272e0ee7d37f1a5a8f936de825309dda672835e16fd4
+
+  [winevdm.source]
+  url             = https://codeload.github.com/otya128/winevdm/tar.gz/refs/tags/v0.9.0
+  sha256          = d1b8002e152efe969ce5478d9f3a85a313f31e50560cabc245d769844e64a161
+
+  [dosbox-x.instant-mode-x64]         # COMPANION: DOS Mode (Instant), Win10/11 x64 hosts only (task I-1). Not for the ReactOS ISO.
+  # Verified Fri Oct 2, 2026 ~4:25 PM PT by RetroOS DOSBox-X Integration. Same tag/commit/source as [dosbox-x] above.
+  version         = 2026.10.01
+  tag             = dosbox-x-v2026.10.01   (tag_commit and [dosbox-x.source] as above)
+  asset           = dosbox-x-mingw64-2026.10.01-portable.zip
+  url             = https://github.com/joncampbell123/dosbox-x/releases/download/dosbox-x-v2026.10.01/dosbox-x-mingw64-2026.10.01-portable.zip
+  size            = 46509846
+  sha256          = def2d84d4415fc26c77252839b4dafb6b476e3a4204b896292e6b05505ca8c59
+  upstream_digest = match   (gh api repos/joncampbell123/dosbox-x/releases/tags/dosbox-x-v2026.10.01 .assets[].digest = sha256:def2d84d…ca8c59)
+  license         = GPL-2.0-or-later (COPYING in zip root = GPLv2 text); binary effectively GPL-3.0 because xBRZ is compiled in (see LICENSES.md)
+  exe_default     = mingw-build/mingw-sdl2/dosbox-x.exe   sha256=072c1944635ccc545a816e128625e3405feab559021e4ef60b2d512f97f754c0  PE32+ x86-64, OS 4.0 / subsystem 5.2, GUI
+  exe_fallback    = mingw-build/mingw/dosbox-x.exe        sha256=7b549d74523e436d3813d8be1f3347aacb4cbf3ca08af717d3c82a1ab880ecef  PE32+ x86-64 (SDL1), same header
+  toolchain       = MSYS2 MinGW-w64 GCC 16.2.0 (+ some 15.2.0 objects), ld 2.47 (from .comment strings / linker version)
+  imports_note    = SDL2 exe: 927 imports from 19 stock Windows DLLs (ADVAPI32 comdlg32 DSOUND GDI32 IMM32 IPHLPAPI KERNEL32 msvcrt ole32 OLEAUT32 OPENGL32 SETUPAPI SHELL32 SHLWAPI USER32 VERSION WINMM WINSPOOL.DRV WS2_32).
+                    NO vcruntime*/msvcp*/ucrtbase/api-ms-win-crt-* imports, no libstdc++/libgcc/winpthread DLLs, no "Microsoft Visual C++" CRT strings. msvcrt.dll = the OS's own copy (not shipped by us).
+                    Uses Vista+ APIs (SRW locks, condition variables, thread pool, GetFileInformationByHandleEx, SHGetKnownFolderPath): fine for the Win10/11 target, never for ReactOS/XP.
+  ships_inpout    = NO inpout32.dll. It DOES ship inpoutx64.dll (98304 B, sha256=5f27ed4d5cd58a1ee23deeb802e09e73f3a1d884ce2135f6e827f67b171269e7, in both mingw-build/mingw and mingw-sdl2):
+                    same Highresolution Enterprises InpOut32/x64 project, embeds a kernel port-I/O driver (inpout32.sys / inpoutx64.sys, "Kernel level port access driver"). Licence not vetted.
+  exclude         = inpoutx64.dll (strip it from our copy), mingw-build/mingw/ (SDL1) unless QA needs the fallback,
+                    fonts SarasaGothicFixed.ttf, Nouveau_IBM.ttf, wqy_11pt.bdf, wqy_12pt.bdf and FREECG98.BMP until M1-7 (same rule as the XP zip)
+  local_copy      = lanes/dosbox-x/downloads/dosbox-x-mingw64-2026.10.01-portable.zip ; extracted to lanes/dosbox-x/research/prebuilt/mingw64/
+  evidence        = lanes/dosbox-x/companion/I-1_mingw64-pin.md
+
+[jsmn]   # vendored source (not a payload); added Mon Oct 19, 2026 ~1:05 AM CT
+version         = v1.1.0
+commit          = fdcef3ebf886fa210d14956d3c068a653e76a24e
+repo            = https://github.com/zserge/jsmn
+file            = modules/vettv/vetvdm/third_party/jsmn.h (on vettv/vetvdm-core 4a98e7328ea)
+sha256          = 1ed6154dedf009212a08a397e9c4ed50a0ce31d5a8301bb294e137ae3188c13b   # matches upstream raw blob, checked locally
+license         = MIT (Copyright (c) 2010 Serge Zaitsev; full text kept in the header). GPLv2-or-later compatible: permissive, notice must stay.
+used_by         = core/profile_json.c only (JSMN_STATIC), statically linked into vetvdm.exe

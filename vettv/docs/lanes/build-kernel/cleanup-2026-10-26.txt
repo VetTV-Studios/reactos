@@ -1,0 +1,71 @@
+# Build&Kernel cleanup 2026-10-26 — DELETE (finished-run VM test disks, superseded)
+282M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-default/vm/disk.raw
+283M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-qa-iso/boot-hook5/test.qcow2
+283M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-core-wire/boot/test.qcow2
+283M /workspace/vettv-retro-os/lanes/build-kernel/runs/m0-5-first/test.qcow2
+283M /workspace/vettv-retro-os/lanes/build-kernel/runs/m0-8-branding/test.qcow2
+283M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-qa-payload/boot-try1/test.qcow2
+330M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-qa-payload/boot-rev2/test.qcow2
+# FLAGGED (kept)
+330M /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-qa-payload/boot/test.qcow2  (latest rev3b boot disk, may be referenced)
+375M	/workspace/bk-usb-cache/alpine-netboot-3.24.2-x86_64.tar.gz  (bk-usb-cache: may be needed for stick rebuild)
+331M	/workspace/bk-usb-cache/boot  (bk-usb-cache: may be needed for stick rebuild)
+81M	/workspace/bk-usb-cache/irfs  (bk-usb-cache: may be needed for stick rebuild)
+1.9G	/workspace/bk-usb-cache/ml  (bk-usb-cache: may be needed for stick rebuild)
+1.3G /workspace/vettv-retro-os/lanes/build-kernel/runs/bk-qa3c (running qa3c, untouched)
+
+## 2026-10-27 01:37 CT cleanup (Vet-approved via Lead). df before: /dev/vdb        128G  107G   21G  84% /
+# run outputs (images only; logs/hashes kept)
+KiB 1408	lanes/build-kernel/runs/bk-core-wire/boot/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa-payload/boot-rev2/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa-payload/boot/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/B/i0.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/B/i1.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/B/i2.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/B/k1.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/B/now.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/C/k1.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/C/k2.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/C/k3.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3c/boot/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3d/boot/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/bk-qa3e/boot/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/m0-5-first/desktop.ppm
+KiB 1408	lanes/build-kernel/runs/m0-8-branding/desktop-clean.ppm
+KiB 1408	lanes/build-kernel/runs/m0-8-branding/desktop.ppm
+KiB 4800	lanes/build-kernel/runs/m0-8-branding/recheck.qcow2
+KiB 100308	lanes/build-kernel/runs/bk-qa3e/usb/retroos-disk.img.gz
+KiB 110348	lanes/build-kernel/runs/bk-qa3e/usb/vettv-retroos-installer.img.xz
+KiB 171516	lanes/build-kernel/runs/bk-qa3c/pre5c/bootcdregtest.iso
+KiB 307208	lanes/build-kernel/runs/bk-qa3e/usb/vettv-retroos-installer.img
+KiB 337288	lanes/build-kernel/runs/bk-qa3c/boot/test.qcow2
+KiB 337412	lanes/build-kernel/runs/bk-qa-payload/boot/test.qcow2
+KiB 337352	lanes/build-kernel/runs/bk-qa3d/boot/test.qcow2
+KiB 337480	lanes/build-kernel/runs/bk-qa3e/boot/test.qcow2
+KiB 407756	lanes/build-kernel/runs/bk-qa3e/usb/unattend.iso
+KiB 407756	lanes/build-kernel/runs/bk-qa3c/pre5c/bootcd.iso
+KiB 325744	lanes/build-kernel/runs/bk-qa3e/usb/retroos-disk.img
+KiB 4096932	lanes/build-kernel/runs/bk-ahci-wizard/repro/target.qcow2
+KiB 4096884	lanes/build-kernel/runs/bk-qa3e/usb-ehci/target.qcow2
+KiB 331364	lanes/build-kernel/runs/bk-qa3c/game.raw
+KiB 331384	lanes/build-kernel/runs/bk-stall/C/disk.raw
+KiB 331396	lanes/build-kernel/runs/bk-stall/D/disk.raw
+KiB 331464	lanes/build-kernel/runs/bk-stall/K/disk.raw
+# qa3f scratch
+KiB 323684	lanes/build-kernel/runs/bk-qa3f/unittest/ut.raw
+KiB 4096908	lanes/build-kernel/runs/bk-qa3f/usb-ehci/target.qcow2
+KiB 4096928	lanes/build-kernel/runs/bk-qa3f/usb-xhci/target.qcow2
+KiB 337480	lanes/build-kernel/runs/bk-qa3f/boot/test.qcow2
+# worktrees (git worktree remove; branches kept)
+KiB 4331684	wt/qa-payload
+KiB 2479084	wt/qa-payload-3c
+KiB 2479340	wt/qa-payload-3c-shell
+KiB 2478796	wt/qa-payload-3d
+KiB 2479244	wt/qa-payload-3e
+KiB 2479236	wt/qa-payload-3f
+KiB 652928	wt/bk-shell-6f2
+# cache
+KiB 1986704	/workspace/bk-usb-cache/ml
+KiB 310344	/workspace/bk-usb-cache/boot
+# NOT removed after listing: wt/qa-payload (173 tracked changes, kept)
+# done 01:37 CT. df after: /dev/vdb        128G   72G   56G  57% /
