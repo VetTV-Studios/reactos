@@ -197,8 +197,7 @@ PwrCompletionFunction(
     NTSTATUS Status;
     PQUERY_POWER_CONTEXT PwrContext = (PQUERY_POWER_CONTEXT)Context;
 
-    // A system set must always go down the stack, even if our D-IRP failed
-    if (NT_SUCCESS(IoStatus->Status) || MinorFunction == IRP_MN_SET_POWER)
+    if (NT_SUCCESS(IoStatus->Status))
     {
         // forward request to lower device object
         Status = PcForwardIrpSynchronous(PwrContext->DeviceObject, PwrContext->Irp);
@@ -263,11 +262,15 @@ PortClsPower(
                 return PoCallDriver(DeviceExtension->PrevDeviceObject, Irp);
             }
 
-            // VetTV: pass the set down too, so the bus driver (e.g. the
-            // KMDF hdaudbus PDO) sees every D-IRP of its child.
+            // start next power irp
             PoStartNextPowerIrp(Irp);
-            IoSkipCurrentIrpStackLocation(Irp);
-            return PoCallDriver(DeviceExtension->PrevDeviceObject, Irp);
+
+            // complete request
+            Irp->IoStatus.Status = Status;
+            IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+            // done
+            return Status;
         }
 
         if (IoStack->MinorFunction == IRP_MN_QUERY_POWER)
@@ -298,20 +301,6 @@ PortClsPower(
         {
             // set power state
             PowerState = IoStack->Parameters.Power.State;
-
-            // VetTV: powering up, the bus has to power the device first
-            if (PowerState.DeviceState == PowerDeviceD0)
-            {
-                Status = PcForwardIrpSynchronous(DeviceObject, Irp);
-                if (!NT_SUCCESS(Status))
-                {
-                    PoStartNextPowerIrp(Irp);
-                    Irp->IoStatus.Status = Status;
-                    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-                    return Status;
-                }
-            }
-
             PoSetPowerState(DeviceObject, DevicePowerState, PowerState);
 
             // check if there is a registered adapter power management
@@ -350,19 +339,7 @@ PortClsPower(
             // store new power state
             DeviceExtension->DevicePowerState = IoStack->Parameters.Power.State.DeviceState;
 
-            if (PowerState.DeviceState != PowerDeviceD0)
-            {
-                // VetTV: powering down, the bus powers the device off last.
-                // Completing the D-IRP here meant hdaudbus never saw its child
-                // leave D0 ("WDF detected potentially invalid device state in
-                // HDAUDBUS.sys" at shutdown).
-                PoStartNextPowerIrp(Irp);
-                IoSkipCurrentIrpStackLocation(Irp);
-                return PoCallDriver(DeviceExtension->PrevDeviceObject, Irp);
-            }
-
             // complete request
-            PoStartNextPowerIrp(Irp);
             Irp->IoStatus.Status = Status;
             IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
@@ -375,45 +352,59 @@ PortClsPower(
         // sanity check
         PC_ASSERT(IoStack->Parameters.Power.Type == SystemPowerState);
 
-        // VetTV: as power policy owner, answer every S-IRP with the matching
-        // D-IRP (S0 -> D0, sleep/off -> D3) and pass the S-IRP down when it
-        // completes. Before, the system state value was sent as a device state
-        // (S5 -> "D6", so the D query failed: "failed IRP_MN_QUERY_POWER"), and a
-        // system set never powered the device down at all.
-        if (IoStack->MinorFunction == IRP_MN_SET_POWER)
-            DeviceExtension->SystemPowerState = IoStack->Parameters.Power.State.SystemState;
-
-        // mark irp as pending
-        IoMarkIrpPending(Irp);
-
-        // allocate power completion context
-        PwrContext = (PQUERY_POWER_CONTEXT)AllocateItem(NonPagedPool, sizeof(QUERY_POWER_CONTEXT), TAG_PORTCLASS);
-
-        if (!PwrContext)
+        if (IoStack->MinorFunction == IRP_MN_QUERY_POWER)
         {
-            PoStartNextPowerIrp(Irp);
-            Irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
-            IoCompleteRequest(Irp, IO_NO_INCREMENT);
+            // mark irp as pending
+            IoMarkIrpPending(Irp);
+
+            // allocate power completion context
+            PwrContext = (PQUERY_POWER_CONTEXT)AllocateItem(NonPagedPool, sizeof(QUERY_POWER_CONTEXT), TAG_PORTCLASS);
+
+            if (!PwrContext)
+            {
+                // no memory
+                PoStartNextPowerIrp(Irp);
+
+                // complete and forget
+                Irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+                IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+                // done
+                return STATUS_PENDING;
+            }
+
+            // setup power context
+            PwrContext->Irp = Irp;
+            PwrContext->DeviceObject = DeviceObject;
+
+            // pass the irp down
+            PowerState = IoStack->Parameters.Power.State;
+            Status = PoRequestPowerIrp(DeviceExtension->PhysicalDeviceObject, IoStack->MinorFunction, PowerState, PwrCompletionFunction, (PVOID)PwrContext, NULL);
+
+            // check for success
+            if (!NT_SUCCESS(Status))
+            {
+                // failed
+                Irp->IoStatus.Status = Status;
+                IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+                // done
+                return STATUS_PENDING;
+            }
+
+            // done
             return STATUS_PENDING;
         }
-
-        // setup power context
-        PwrContext->Irp = Irp;
-        PwrContext->DeviceObject = DeviceObject;
-
-        PowerState.DeviceState = (IoStack->Parameters.Power.State.SystemState == PowerSystemWorking) ?
-                                 PowerDeviceD0 : PowerDeviceD3;
-        Status = PoRequestPowerIrp(DeviceExtension->PhysicalDeviceObject, IoStack->MinorFunction, PowerState, PwrCompletionFunction, (PVOID)PwrContext, NULL);
-
-        if (!NT_SUCCESS(Status))
+        else
         {
-            FreeItem(PwrContext, TAG_PORTCLASS);
-            PoStartNextPowerIrp(Irp);
-            Irp->IoStatus.Status = Status;
-            IoCompleteRequest(Irp, IO_NO_INCREMENT);
-        }
+            // set power request
+            DeviceExtension->SystemPowerState = IoStack->Parameters.Power.State.SystemState;
 
-        return STATUS_PENDING;
+            // only forward query requests
+            PoStartNextPowerIrp(Irp);
+            IoSkipCurrentIrpStackLocation(Irp);
+            return PoCallDriver(DeviceExtension->PrevDeviceObject, Irp);
+        }
     }
 }
 
@@ -450,9 +441,6 @@ PortClsShutdown(
     {
         // release adapter power management
         DPRINT("Power %u\n", DeviceExtension->AdapterPowerManagement->Release());
-        // VetTV: power IRPs still arrive after IRP_MJ_SHUTDOWN; don't call
-        // into the released interface
-        DeviceExtension->AdapterPowerManagement = NULL;
     }
 
     Irp->IoStatus.Status = STATUS_SUCCESS;
