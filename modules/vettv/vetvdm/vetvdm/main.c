@@ -37,12 +37,13 @@ static const char g_help[] =
     "  --log=<file>\n"
     "  --keep-conf               Leave the generated dosbox-x.conf in place\n"
     "  --dry-run                 Print the layer and conf, then exit 0\n"
+    "  --caller=shell            Mark a launch from vettvshell in vetvdm.log\n"
     "  --from-hook               Keep the caller's console and working directory\n"
     "  --version\n"
     "  --help\n";
 
 static DWORD
-launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code)
+launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code, DWORD *os_error)
 {
     vcore_job job;
     const WCHAR *app = NULL;
@@ -60,6 +61,8 @@ launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code)
     if (!app || !app[0] || !command)
         return VETVDM_E_NOLAYER;
     status = vcore_launch_in_job(app, command, st->cwd[0] ? st->cwd : NULL, &job);
+    if (os_error)
+        *os_error = job.os_error;
     if (status != VETVDM_OK)
         return status;
     if (job.nested)
@@ -134,7 +137,8 @@ emit_dry(host *st, int layer, const char *conf, const WCHAR *command)
     memset(&in, 0, sizeof(in));
     in.layer = vetvdm_layer_name(layer);
     in.kind = vetvdm_kind_name(st->kind);
-    in.caller = st->cmd.from_hook ? "hook" : (st->cmd.profile[0] ? "shell" : "cli");
+    in.caller = st->cmd.from_hook ? "hook" :
+        ((st->cmd.from_shell || st->cmd.profile[0]) ? "shell" : "cli");
     in.profile_id = st->profile.id;
     in.profile_src = vcore_profile_src_name(st->profile.src);
     in.image = image;
@@ -248,6 +252,7 @@ do_launch(host *st)
     int layer;
     DWORD err = VETVDM_OK;
     DWORD code = 1;
+    DWORD os_error = 0;
     DWORD status;
     vcore_buf conf;
     WCHAR conf_path[MAX_PATH];
@@ -304,8 +309,24 @@ do_launch(host *st)
         return VETVDM_E_CMDLINE;
     }
     release_own_console(st);
-    status = launch_layer(st, layer, command, &code);
+    status = launch_layer(st, layer, command, &code, &os_error);
     HeapFree(GetProcessHeap(), 0, command);
+    /*
+     * NTVDM reached only as a fallback means the real DOS player is not
+     * installed. If NTVDM cannot start the program either, report the
+     * missing layer (0xE0000004), not a crash, and keep the cause in the log.
+     */
+    if (layer == VETVDM_LAYER_NTVDM && desired != VETVDM_LAYER_NTVDM &&
+        (status == VETVDM_E_START ||
+         (status == VETVDM_OK && code == VETVDM_E_START)))
+    {
+        char note[48];
+        wsprintfA(note, "ntvdm-failed:err=%lu,exit=0x%08lX",
+                  (unsigned long)os_error, (unsigned long)code);
+        warn_add(st->warn, sizeof(st->warn), note);
+        st->why = "DOS player not installed and NTVDM could not start the program";
+        return VETVDM_E_NOLAYER;
+    }
     if (status != VETVDM_OK)
     {
         st->why = why_for(status, NULL);

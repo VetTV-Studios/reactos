@@ -32,6 +32,7 @@ typedef struct vetvdm_cmdline
 {
     DWORD status;
     int from_hook;
+    int from_shell;
     int keep_conf;
     int dry_run;
     int help;
