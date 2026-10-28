@@ -349,6 +349,71 @@ PlayLogonSoundThread(
         goto Cleanup;
     }
 
+    /* VetTV: on first boot a new audio device (e.g. AC97, or real-hardware
+     * HDA with a new PCI ID) is installed by PnP only after logon, so wdmaud
+     * may be running with no wave device yet. Wait up to ~60 s for one.
+     * Do NOT poll through winmm: once loaded it never unloads in this process
+     * (wdmaud.drv imports it back) and its device list is fixed at load time.
+     * Poll the PnP device interfaces with setupapi instead, and load winmm
+     * (in PlaySoundRoutine) only after a render device and sysaudio exist.
+     * This runs in its own thread; winlogon never waits on it. */
+    {
+        static const GUID VetTVAudioCategories[] = {
+            {0x65E8773E, 0x8F56, 0x11D0, {0xA3, 0xB9, 0x00, 0xA0, 0xC9, 0x22, 0x31, 0x96}}, /* KSCATEGORY_RENDER */
+            {0xA7C7A5B1, 0x5AF3, 0x11D1, {0x9C, 0xED, 0x00, 0xA0, 0x24, 0xBF, 0x04, 0x07}}, /* KSCATEGORY_SYSAUDIO */
+        };
+        typedef HANDLE (WINAPI *GETCLASSDEVSW)(const GUID*, PCWSTR, HWND, DWORD);
+        typedef BOOL (WINAPI *ENUMDEVICEINTERFACES)(HANDLE, PVOID, const GUID*, DWORD, PVOID);
+        typedef BOOL (WINAPI *DESTROYDEVICEINFOLIST)(HANDLE);
+        struct { DWORD cbSize; GUID InterfaceClassGuid; DWORD Flags; ULONG_PTR Reserved; } Iface;
+        HMODULE hSetupapi = LoadLibraryW(L"setupapi.dll");
+        GETCLASSDEVSW pGetClassDevs = NULL;
+        ENUMDEVICEINTERFACES pEnumIfaces = NULL;
+        DESTROYDEVICEINFOLIST pDestroy = NULL;
+        BOOL Found = FALSE;
+        ULONG Poll, Cat;
+
+        if (hSetupapi)
+        {
+            pGetClassDevs = (GETCLASSDEVSW)GetProcAddress(hSetupapi, "SetupDiGetClassDevsW");
+            pEnumIfaces = (ENUMDEVICEINTERFACES)GetProcAddress(hSetupapi, "SetupDiEnumDeviceInterfaces");
+            pDestroy = (DESTROYDEVICEINFOLIST)GetProcAddress(hSetupapi, "SetupDiDestroyDeviceInfoList");
+        }
+        for (Poll = 0; pGetClassDevs && pEnumIfaces && pDestroy && Poll < 120; Poll++)
+        {
+            Found = TRUE;
+            for (Cat = 0; Cat < ARRAYSIZE(VetTVAudioCategories); Cat++)
+            {
+                /* DIGCF_PRESENT | DIGCF_DEVICEINTERFACE */
+                HANDLE hDevs = pGetClassDevs(&VetTVAudioCategories[Cat], NULL, NULL, 0x02 | 0x10);
+                BOOL Have = FALSE;
+                if (hDevs != INVALID_HANDLE_VALUE)
+                {
+                    Iface.cbSize = sizeof(Iface);
+                    Have = pEnumIfaces(hDevs, NULL, &VetTVAudioCategories[Cat], 0, &Iface);
+                    pDestroy(hDevs);
+                }
+                if (!Have)
+                {
+                    Found = FALSE;
+                    break;
+                }
+            }
+            if (Found)
+                break;
+            Sleep(500);
+        }
+        if (Poll)
+        {
+            ERR("VetTV: waited %lu ms for an audio device (found=%d)\n", Poll * 500, Found);
+            /* Device just arrived: give wdmaud's 1 s rescan timer time to pick it up. */
+            if (Found)
+                Sleep(3000);
+        }
+        if (hSetupapi)
+            FreeLibrary(hSetupapi);
+    }
+
     /* Sound subsystem is running. Play logon sound. */
     TRACE("Playing %s sound\n", SoundData->IsStartup ? "startup" : "logon");
     if (!ImpersonateLoggedOnUser(SoundData->UserToken))
