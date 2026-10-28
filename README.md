@@ -1,3 +1,7 @@
+<!-- VetTV: begin beta-channel banner -->
+> **VetTV Retro OS — Beta/Experimental channel.** This repository (`VetTV-Studios/reactos`, a ReactOS fork) is the Beta/Experimental channel of VetTV Retro OS. The Stable channel lives at [VetTV-Studios/retroos](https://github.com/VetTV-Studios/retroos).
+<!-- VetTV: end beta-channel banner -->
+
 <p align=center>
   <a href="https://reactos.org/">
     <img alt="ReactOS" src="https://reactos.org/wiki/images/0/02/ReactOS_logo.png">
