@@ -190,14 +190,24 @@ static DWORD WINAPI LaunchThread(LPVOID p)
     return 0;
 }
 
-static void StartGame(void)
+/* Input hardening (QA h2h ReactOS: pointer moves from a usb-tablet started
+ * the selected tile 3x). A click launches only as a button-down AND button-up
+ * pair on the launcher, and a down within VT_SETTLE_MS of the window being
+ * shown/activated is ignored (stray tablet/button state at show time). */
+#define VT_SETTLE_MS 250
+static DWORD g_shownTick;  /* GetTickCount() of the last show/activation */
+static BOOL g_btnArmed;    /* a genuine WM_LBUTTONDOWN is waiting for its up */
+
+static void StartGame(LPCWSTR trigger)
 {
     HANDLE t;
     int s = g_focusShelf;
     if (g_running || !g_shelfLen[s])
         return;
     g_launchIdx = g_shelfIdx[s][g_focusCol[s]];
+    VtLog(L"launch trigger=%s tile=%s", trigger, g_lib.games[g_launchIdx].title);
     g_running = TRUE;
+    g_btnArmed = FALSE;
     wsprintfW(g_status, L"Starting %s...", g_lib.games[g_launchIdx].title);
     InvalidateRect(g_wnd, NULL, FALSE);
     UpdateWindow(g_wnd);
@@ -208,6 +218,10 @@ static void StartGame(void)
         return;
     }
     CloseHandle(t);
+    /* Drop topmost before hiding: a hidden WS_EX_TOPMOST window that gets
+       re-shown by any path would sit above a fullscreen game (pcp-74f53cd4fd). */
+    SetWindowPos(g_wnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
     ShowWindow(g_wnd, SW_HIDE); /* no rendering while a game runs */
 }
 
@@ -217,6 +231,12 @@ static void StartGame(void)
  * our bottom edge (qa3e). */
 static void CoverScreen(void)
 {
+    /* Never touch z-order or visibility while a game runs. GameDone clears
+       g_running before calling us, so the return-to-launcher path still works. */
+    if (g_running)
+        return;
+    g_shownTick = GetTickCount();
+    g_btnArmed = FALSE;
     SetWindowPos(g_wnd, HWND_TOPMOST, 0, 0,
                  GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
                  SWP_SHOWWINDOW);
@@ -321,7 +341,9 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         return 0;
     }
     case WM_DISPLAYCHANGE:
-        if (IsWindowVisible(w))
+        /* DOSBox-X fullscreen mode switches land here; while a game runs the
+           launcher is hidden and must stay hidden and non-topmost. */
+        if (IsWindowVisible(w) && !g_running && !g_yielded)
             CoverScreen();
         return 0;
     case WM_ERASEBKGND:
@@ -348,7 +370,12 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         case VK_END:
             if (g_shelfLen[g_focusShelf]) g_focusCol[g_focusShelf] = g_shelfLen[g_focusShelf] - 1;
             InvalidateRect(w, NULL, FALSE); break;
-        case VK_RETURN: case VK_SPACE: StartGame(); break;
+        case VK_RETURN: case VK_SPACE: {
+            WCHAR t[32];
+            wsprintfW(t, L"key vk=0x%02lX", (DWORD)wp);
+            StartGame(t);
+            break;
+        }
         case VK_F5: Reload(); InvalidateRect(w, NULL, FALSE); break;
         case VK_F10: ExitToDesktop(); break;
         }
@@ -359,14 +386,41 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
     case WM_LBUTTONDOWN:
         /* Only a click on the visible, active launcher starts a game; after
            F10 a stray click (e.g. meant for the taskbar) must not. */
-        if (!g_running && IsWindowVisible(w) && GetForegroundWindow() == w)
-            StartGame();
+        g_btnArmed = FALSE;
+        if (g_running || !IsWindowVisible(w) || GetForegroundWindow() != w)
+            return 0;
+        if (GetTickCount() - g_shownTick < VT_SETTLE_MS) {
+            VtLog(L"ignored button-down %lu ms after show x=%d y=%d",
+                  GetTickCount() - g_shownTick, (short)LOWORD(lp), (short)HIWORD(lp));
+            return 0;
+        }
+        g_btnArmed = TRUE;
+        SetCapture(w);
+        return 0;
+    case WM_LBUTTONUP: {
+        BOOL armed = g_btnArmed;
+        int x = (short)LOWORD(lp), y = (short)HIWORD(lp);
+        RECT rc;
+        g_btnArmed = FALSE;
+        if (GetCapture() == w) ReleaseCapture();
+        GetClientRect(w, &rc);
+        if (armed && !g_running && IsWindowVisible(w) && GetForegroundWindow() == w &&
+            x >= 0 && y >= 0 && x < rc.right && y < rc.bottom) {
+            WCHAR t[48];
+            wsprintfW(t, L"click x=%d y=%d", x, y);
+            StartGame(t);
+        }
+        return 0;
+    }
+    case WM_CAPTURECHANGED:
+        g_btnArmed = FALSE;
         return 0;
     case WM_ACTIVATEAPP:
+        if (wp) { g_shownTick = GetTickCount(); g_btnArmed = FALSE; }
         /* Another process took the foreground. Check once it has settled. */
         if (!wp && !g_running && IsWindowVisible(w))
             PostMessageW(w, WM_APP_CHECKFG, 0, 0);
-        else if (wp && g_yielded) {
+        else if (wp && g_yielded && !g_running) {
             g_yielded = FALSE; /* the dialog is gone and we are back */
             CoverScreen();
         }
@@ -379,17 +433,21 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
         HWND fg = GetForegroundWindow();
         WCHAR cls[32];
         DWORD pid = 0;
-        if (fg && fg != w && !g_yielded) {
+        if (fg && fg != w && !g_yielded && !g_running) {
             GetWindowThreadProcessId(fg, &pid);
+            /* Also yield to any other foreign top-level window (e.g. a game
+               started outside the launcher, such as DOSBox-X via a Run/startup
+               command: pcp-74f53cd4fd), but never to the taskbar/desktop. */
             if (pid != GetCurrentProcessId() && GetClassNameW(fg, cls, 32) &&
-                !lstrcmpW(cls, L"#32770")) {
+                lstrcmpW(cls, L"Shell_TrayWnd") && lstrcmpW(cls, L"Progman") &&
+                lstrcmpW(cls, L"WorkerW")) {
                 g_yielded = TRUE;
                 KillTimer(w, TIMER_RAISE);
                 SetWindowPos(w, HWND_NOTOPMOST, 0, 0, 0, 0,
                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
                 SetWindowPos(fg, HWND_TOP, 0, 0, 0, 0,
                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                VtLog(L"yield topmost to foreign dialog pid=%lu", pid);
+                VtLog(L"yield topmost to foreign window cls=%s pid=%lu", cls, pid);
             }
         }
         return 0;
