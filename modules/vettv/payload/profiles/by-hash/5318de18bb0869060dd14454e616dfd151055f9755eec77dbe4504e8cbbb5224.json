@@ -1,0 +1,30 @@
+{
+  "id": "jazz-jackrabbit-shareware",
+  "match": {
+    "sha256": "5318de18bb0869060dd14454e616dfd151055f9755eec77dbe4504e8cbbb5224",
+    "name": "JAZZ.EXE",
+    "size": 226304
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "fixed 30000",
+    "machine": "svga_s3",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "normal",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "opl2",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "JAZZ.EXE from 1jazz.zip (matrix G008). SB music via its own player; OPL3 not needed. (generated from h2h-debian/dosbox-x by gen.py)"
+}
