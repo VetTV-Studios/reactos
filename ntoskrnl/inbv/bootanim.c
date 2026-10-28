@@ -318,25 +318,32 @@ NTAPI
 BootAnimTickProgressBar(
     _In_ ULONG SubPercentTimes100)
 {
-    ULONG FillCount;
+    // VetTV: segmented bar; each segment is lit with palette index 11 once reached
+    static const ULONG Segments[VID_PROGRESS_SEGMENTS][4] = VID_PROGRESS_SEGMENT_RECTS;
+    ULONG Lit, i;
 
     /* Make sure the progress bar is enabled, that we own and are installed */
     ASSERT(ShowProgressBar &&
            InbvBootDriverInstalled &&
            (InbvGetDisplayState() == INBV_DISPLAY_STATE_OWNED));
 
-    /* Compute fill count */
-    FillCount = VID_PROGRESS_BAR_WIDTH * SubPercentTimes100 / (100 * 100);
+    // VetTV: number of fully reached segments
+    Lit = VID_PROGRESS_SEGMENTS * SubPercentTimes100 / (100 * 100);
+    if (Lit > VID_PROGRESS_SEGMENTS) Lit = VID_PROGRESS_SEGMENTS;
 
     /* Acquire the lock */
     InbvAcquireLock();
 
-    /* Fill the progress bar */
-    VidSolidColorFill(ProgressBarLeft,
-                      ProgressBarTop,
-                      ProgressBarLeft + FillCount,
-                      ProgressBarTop + VID_PROGRESS_BAR_HEIGHT,
-                      BV_COLOR_WHITE);
+    // VetTV: fill lit segments (index 11) with a 1-px bevel on the bottom row (index 12)
+    for (i = 0; i < Lit; i++)
+    {
+        VidSolidColorFill(Segments[i][0], Segments[i][1],
+                          Segments[i][2], Segments[i][3] - 1,
+                          VID_PROGRESS_FILL_COLOR);
+        VidSolidColorFill(Segments[i][0], Segments[i][3],
+                          Segments[i][2], Segments[i][3],
+                          VID_PROGRESS_BEVEL_COLOR);
+    }
 
     /* Release the lock */
     InbvReleaseLock();
@@ -664,7 +671,7 @@ DisplayBootBitmap(
                           TRUE,
                           AL_HORIZONTAL_CENTER,
                           AL_VERTICAL_CENTER,
-                          0, 0, 0, 34);
+                          0, 0, 0, 0); // VetTV: full-screen 640x480 logo, no bottom margin
 
 #ifdef INBV_ROTBAR_IMPLEMENTED
             /* Choose progress bar */
@@ -672,8 +679,7 @@ DisplayBootBitmap(
 #endif
 
             /* Set progress bar coordinates and display it */
-            InbvSetProgressBarCoordinates(VID_PROGRESS_BAR_LEFT,
-                                          VID_PROGRESS_BAR_TOP);
+            InbvSetProgressBarCoordinates(223, 352); // VetTV: segment table origin (bar uses VID_PROGRESS_SEGMENT_RECTS)
 
 #ifdef REACTOS_SKUS
             /* Check for non-workstation products */
@@ -693,21 +699,10 @@ DisplayBootBitmap(
 #endif // REACTOS_SKUS
         }
 
-        /* Load and draw progress bar bitmap */
-        BootProgress = InbvGetResourceAddress(IDB_PROGRESS_BAR);
-        BitBltAligned(BootProgress,
-                      TRUE,
-                      AL_HORIZONTAL_CENTER,
-                      AL_VERTICAL_CENTER,
-                      0, 118, 0, 0);
-
-        /* Load and draw copyright text bitmap */
-        BootCopy = InbvGetResourceAddress(IDB_COPYRIGHT);
-        BitBltAligned(BootCopy,
-                      TRUE,
-                      AL_HORIZONTAL_LEFT,
-                      AL_VERTICAL_BOTTOM,
-                      22, 0, 0, 20);
+        // VetTV: stock bar.bmp and copyright.bmp are not drawn; the segment tracks and
+        // version text are part of the VetTV logo art.
+        DBG_UNREFERENCED_LOCAL_VARIABLE(BootProgress);
+        DBG_UNREFERENCED_LOCAL_VARIABLE(BootCopy);
 
 #ifdef REACTOS_SKUS
         /* Draw the SKU text if it exits */
