@@ -12,6 +12,7 @@
     "memsize": "16",
     "mpu401": "none",
     "sbtype": "sb16",
+    "fullscreen": "false",
     "extra": {
       "cpu": {
         "core": "normal",
@@ -23,6 +24,9 @@
         "irq": "7",
         "oplmode": "opl2",
         "sbbase": "220"
+      },
+      "sdl": {
+        "autolock": "false"
       }
     }
   },

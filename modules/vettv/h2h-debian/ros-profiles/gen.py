@@ -34,6 +34,10 @@ def build(meta, kv, name, sha):
     for (s, k), v in sorted(full.items()):
         if (s, k) in TOP: dos[TOP[(s, k)]] = v
         else: extra.setdefault(s, {})[k] = v
+    # Lead ruling 2026-10-28: both h2h sides run windowed. vetvdm honours a
+    # profile's fullscreen field and an extra [sdl] autolock over its defaults.
+    dos['fullscreen'] = 'false'
+    extra.setdefault('sdl', {})['autolock'] = 'false'
     if extra: dos['extra'] = extra
     match = {}
     if sha: match['sha256'] = sha
