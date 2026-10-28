@@ -89,5 +89,6 @@ WCHAR *host_command_wine(const host *st);
 WCHAR *host_command_ntvdm(const host *st);
 
 void write_log(host *st, DWORD code);
+void write_log_early(host *st, const char *line);
 
 #endif /* VETVDM_HOST_H */

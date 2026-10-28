@@ -46,10 +46,11 @@ static const char g_help[] =
 /*
  * Bug #2: append one line to <temp>\vetvdm.log and flush it to disk
  * before the layer starts, so the profile choice survives a hard
- * power-off while the game is running.
+ * power-off while the game is running. The same line also goes to the
+ * shared C:\VetTV\logs\vetvdm.log (write_log_early).
  */
 static void
-note_launch(const host *st)
+note_launch(host *st)
 {
     WCHAR path[MAX_PATH];
     HANDLE file;
@@ -63,6 +64,7 @@ note_launch(const host *st)
               st->profile.id[0] ? st->profile.id : "-", src ? src : "-");
     line[sizeof(line) - 1] = 0;
     len = (DWORD)strlen(line);
+    write_log_early(st, line);
     file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL,
                       OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == INVALID_HANDLE_VALUE)
