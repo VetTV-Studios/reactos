@@ -42,6 +42,37 @@ mkdir_parents(const WCHAR *file)
         CreateDirectoryW(dir, NULL);
 }
 
+/*
+ * Bug #2 follow-up: append one early line to the shared vetvdm.log and
+ * flush it before the layer starts, so the profile choice is on disk in
+ * the place QA reads even if the game never exits.
+ */
+void
+write_log_early(host *st, const char *line)
+{
+    WCHAR path[MAX_PATH];
+    HANDLE file;
+    DWORD wrote = 0;
+
+    if (!line || st->skip_log || st->log_level == 0)
+        return;
+    if (st->cmd.log_path[0])
+        vcore_w_copy(path, MAX_PATH, st->cmd.log_path);
+    else if (!(st->have_roots &&
+               vetvdm_path_succeeded(vetvdm_path_resolve(
+                   &st->roots, VETVDM_PATH_SHARED_LOG, NULL, path, MAX_PATH,
+                   NULL, TRUE, NULL, NULL))))
+        return;
+    mkdir_parents(path);
+    file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                       NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE)
+        return;
+    WriteFile(file, line, (DWORD)vcore_cstr_len(line), &wrote, NULL);
+    FlushFileBuffers(file);
+    CloseHandle(file);
+}
+
 void
 write_log(host *st, DWORD code)
 {

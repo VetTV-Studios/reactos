@@ -129,3 +129,9 @@ i686-w64-mingw32-gcc -std=gnu99 -Wall -Wextra -Werror -O2 \
 - Do not define `WINVER` or `_WIN32_WINNT` in this CMakeLists. ReactOS already sets both to `0x502`. `vetvdm.exe` imports `kernel32`, `user32`, `advapi32`, and `shell32`.
 - The hook's recursion guard is the image name `vetvdm.exe`. vetvdm does not set `VETTV_VDM_BYPASS`. NTVDM is `CreateProcessW` of the original program, and the child inherits the environment unchanged. WineVDM (`otvdm.exe`) can still re-enter the hook; skipping that image name is a Build & Kernel question.
 - DOSBox-X pin is 2026.10.01. The installer copies `dosbox-x_XPx86_SDL2.exe` onto `dosbox-x.exe`, and vetvdm launches that name with `-exit -nopromptfolder -fastlaunch`. The guest exit code is `config -get errorlevel >V:\ERRORLVL.TXT` in the generated conf. WineVDM's default is `%SystemDrive%\VetTV\winevdm\otvdmw.exe`. A registry `WineVdmPath` that exists is used as given. If that file is missing, the bundled `%SystemDrive%\VetTV\winevdm\otvdmw.exe` is next, then `%ProgramFiles%\otvdm\otvdmw.exe` (and `otvdm.exe` beside it). The shared `vetvdm.log` line records the DOSBox-X path and the WineVDM path with the lookup step (`winevdm-path`, `bundled`, `programfiles`, or `missing`). See `THIRD_PARTY.txt`. JSON profiles use vendored jsmn (MIT).
+
+## Logs
+
+- `C:\VetTV\logs\vetvdm.log` (shared): one early `launch profile=` line, flushed before DOSBox-X starts, plus the full record after it exits.
+- `<temp>\vetvdm.log`: the same early line, per launch.
+- `<temp>\dosbox-x.out`: DOSBox-X's own stdout and stderr, written through. This is the file to read for DOSBox-X output. vetvdm no longer sets `[log] logfile=`, which never wrote anything on ReactOS.
