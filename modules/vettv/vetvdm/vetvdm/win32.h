@@ -39,8 +39,9 @@ typedef struct vcore_job
     DWORD os_error; /* GetLastError() when CreateProcessW failed */ /* 1 = left in the caller's job, no own job */
 } vcore_job;
 
+/* std_out: inheritable handle for the child's stdout+stderr, or NULL. */
 DWORD vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
-                         vcore_job *out);
+                         HANDLE std_out, vcore_job *out);
 DWORD vcore_job_wait(vcore_job *job, DWORD *exit_code);
 void vcore_job_close(vcore_job *job);
 
