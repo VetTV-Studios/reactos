@@ -1,0 +1,28 @@
+{
+  "id": "duke-nukem-3d-shareware-1.3d",
+  "match": {
+    "name": "DUKE3D.EXE"
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "max",
+    "machine": "svga_s3",
+    "memsize": "32",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "dynamic",
+        "cputype": "pentium"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "opl3",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "Build engine, DOS4GW: needs dynamic core + max cycles (TCG guest is slow; cap removed deliberately). Music: OPL (FM) because no GM synth is installed; run SETUP.EXE once and pick SB16 for FX and music. Hash unknown (INSTALL.EXE). (generated from h2h-debian/dosbox-x by gen.py)"
+}
