@@ -18,4 +18,4 @@ and this folder into the guest. One way is a 9p share, or `virt-copy-in` with th
     /opt/vettv-h2h/vetvdm-h2h.sh ~/games/jazz/JAZZ.EXE
 Runtime libs: libsdl2-2.0-0, libpng16-16t64, libfreetype6, libasound2t64, libpcap0.8t64, libxkbfile1, libncurses6.
 Check with `ldd /opt/dosbox-x/bin/dosbox-x`.
-- Display: both sides run windowed (Lead ruling 2026-10-28). Debian base.conf: fullscreen=false, output=surface (autolock off by default). The ReactOS profiles set fullscreen=false and [sdl] autolock=false over vetvdm's defaults.
+- Display: both sides run windowed (Lead ruling 2026-10-28). Debian base.conf: fullscreen=false, autolock=false, output=surface. The ReactOS profiles set fullscreen=false and [sdl] autolock=false over vetvdm's defaults.
