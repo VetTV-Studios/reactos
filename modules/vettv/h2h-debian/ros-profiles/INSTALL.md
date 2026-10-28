@@ -28,4 +28,4 @@ Game files are not included. Copy them into the overlay yourself (e.g. C:\GAMES\
 
 ## Profile caveats
 - vetvdm only uses a by-name profile when match.size is set. Only JAZZ, LURE and TYRIAN2K have a size (they also have by-hash). The other 8 (DOOM, WOLF3D, KEEN4E, DUKE3D, RAP, PINBALL, JILL1, SKY) won't match on ReactOS until their EXE sha256/size is added. On Debian they match by name alone, so the sides differ there.
-- vetvdm forces fullscreen=true, autolock and output=surface, while Debian runs windowed. That's display only. Sound, cycles, memory, machine and CPU settings are identical.
+- Display matches: vetvdm forces fullscreen=true, autolock=true and output=surface, and the Debian base.conf now sets the same three (Lead ruling 2026-10-28). Sound, cycles, memory, machine and CPU settings are identical too.
