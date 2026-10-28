@@ -7,14 +7,25 @@
   },
   "layer": "dosboxx",
   "dosbox": {
-    "sbtype": "sb16",
+    "cycles": "auto",
+    "machine": "svga_s3",
+    "memsize": "16",
     "mpu401": "none",
+    "sbtype": "sb16",
     "extra": {
+      "cpu": {
+        "core": "auto",
+        "cputype": "auto"
+      },
       "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplemu": "default",
         "oplmode": "opl2",
-        "oplemu": "default"
+        "sbbase": "220"
       }
     }
   },
-  "notes": "Lure auto-detects at the title screen: MPU-401 first, then AdLib/SB. ReactOS has no midiOut synth, so mpu401=none forces AdLib/SB; oplmode=opl2 matches the original hardware. No setup file or switch exists. Forced values come from vetvdm §5.1. GM synth deferred pending soundfont licence audit."
+  "notes": "Ported from the ReactOS profile: sb16, mpu401=none, oplmode=opl2 (Lure auto-detects MPU first). (generated from h2h-debian/dosbox-x by gen.py)"
 }
