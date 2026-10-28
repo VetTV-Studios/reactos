@@ -194,6 +194,73 @@ try_file(vcore_read_fn readfn, void *ctx, const WCHAR *path,
     return status;
 }
 
+/*
+ * VetTV: by-hash/INDEX.TXT fallback. ISO9660 without Joliet truncates the
+ * 64-hex by-hash names, so the payload also ships 8.3-safe copies and an
+ * index of "<sha256> <8.3 name>" lines (# comments, blank lines ignored).
+ * Returns 1 and fills short_name when the hash is listed.
+ */
+static int
+index_lookup(vcore_read_fn readfn, void *ctx, const WCHAR *hash_dir,
+            const char *sha, WCHAR *short_name, DWORD cap)
+{
+    WCHAR ipath[MAX_PATH];
+    char *buf, *line, *next;
+    DWORD len = 0;
+    int rc, hit = 0;
+    const DWORD bcap = 64u * 1024u;
+
+    if (!join_path(ipath, MAX_PATH, hash_dir, L"INDEX.TXT"))
+        return 0;
+    buf = (char *)malloc(bcap);
+    if (!buf)
+        return 0;
+    rc = readfn(ctx, ipath, buf, bcap, &len);
+    if (rc != 1)
+    {
+        free(buf);
+        return 0;
+    }
+    if (len >= bcap)
+        len = bcap - 1;
+    buf[len] = 0;
+    for (line = buf; line && *line && !hit; line = next)
+    {
+        char *p = line, *q;
+        unsigned k;
+        next = strchr(line, '\n');
+        if (next)
+            *next++ = 0;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (*p == '#' || !*p)
+            continue;
+        for (k = 0; k < 64; k++)
+        {
+            char a = p[k], b = sha[k];
+            if (a >= 'A' && a <= 'F') a = (char)(a - 'A' + 'a');
+            if (b >= 'A' && b <= 'F') b = (char)(b - 'A' + 'a');
+            if (!a || a != b)
+                break;
+        }
+        if (k != 64 || sha[64] || (p[64] != ' ' && p[64] != '\t'))
+            continue;
+        p += 64;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        q = p;
+        while (*q && *q != ' ' && *q != '\t' && *q != '\r')
+            q++;
+        *q = 0;
+        if (!*p || strchr(p, '\\') || strchr(p, '/') || strstr(p, ".."))
+            continue;
+        if (vcore_utf8_to_wide(p, short_name, cap) == VETVDM_OK)
+            hit = 1;
+    }
+    free(buf);
+    return hit;
+}
+
 static int
 sha_ok(const vcore_profile *prof, const char *sha)
 {
@@ -327,7 +394,15 @@ vcore_profile_lookup(const WCHAR *const *dirs, int n_dirs,
                 continue;
             status = load_at(readfn, ctx, name, out, VCORE_SRC_BYHASH);
             if (status == VETVDM_E_NOPROG)
-                continue;
+            {
+                WCHAR short_name[16];
+                if (!index_lookup(readfn, ctx, path, sha256_hex, short_name, 16) ||
+                    !join_path(name, MAX_PATH, path, short_name))
+                    continue;
+                status = load_at(readfn, ctx, name, out, VCORE_SRC_BYHASH);
+                if (status == VETVDM_E_NOPROG)
+                    continue;
+            }
             if (status != VETVDM_OK)
                 return status;
             if (!sha_ok(out, sha256_hex))
