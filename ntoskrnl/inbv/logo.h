@@ -16,10 +16,23 @@
 #define VID_SCROLL_AREA_RIGHT     631
 #define VID_SCROLL_AREA_BOTTOM    400
 
-#define VID_PROGRESS_BAR_LEFT     259
-#define VID_PROGRESS_BAR_TOP      352
-#define VID_PROGRESS_BAR_WIDTH    121
-#define VID_PROGRESS_BAR_HEIGHT   12
+// VetTV: 10-segment progress bar (lanes/art/export/boot/progress_coords.json, inclusive rects)
+#define VID_PROGRESS_SEGMENTS      10
+#define VID_PROGRESS_FILL_COLOR    11
+#define VID_PROGRESS_BEVEL_COLOR   12
+#define VID_PROGRESS_SEGMENT_RECTS \
+{ \
+    {223, 366, 236, 370}, \
+    {243, 364, 256, 370}, \
+    {263, 363, 276, 370}, \
+    {283, 361, 296, 370}, \
+    {303, 360, 316, 370}, \
+    {323, 358, 336, 370}, \
+    {343, 357, 356, 370}, \
+    {363, 355, 376, 370}, \
+    {383, 354, 396, 370}, \
+    {403, 352, 416, 370}, \
+}
 
 /* 16px space between shutdown logo and message */
 #define VID_SHUTDOWN_LOGO_LEFT    225
