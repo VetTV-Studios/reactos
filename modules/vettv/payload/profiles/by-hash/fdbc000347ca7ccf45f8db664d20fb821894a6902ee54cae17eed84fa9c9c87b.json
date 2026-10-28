@@ -1,0 +1,20 @@
+{
+  "id": "lure-of-the-temptress",
+  "match": {
+    "sha256": "fdbc000347ca7ccf45f8db664d20fb821894a6902ee54cae17eed84fa9c9c87b",
+    "name": "LURE.EXE",
+    "size": 136956
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "sbtype": "sb16",
+    "mpu401": "none",
+    "extra": {
+      "sblaster": {
+        "oplmode": "opl2",
+        "oplemu": "default"
+      }
+    }
+  },
+  "notes": "Lure auto-detects at the title screen: MPU-401 first, then AdLib/SB. ReactOS has no midiOut synth, so mpu401=none forces AdLib/SB; oplmode=opl2 matches the original hardware. No setup file or switch exists. Forced values come from vetvdm §5.1. GM synth deferred pending soundfont licence audit."
+}

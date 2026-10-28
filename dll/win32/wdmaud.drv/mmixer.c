@@ -536,6 +536,11 @@ WdmAudSetWaveDeviceFormatByMMixer(
                 return MMSYSERR_ERROR;
             }
             MixerStatus = MMixerRegisterRTStreamingEvent(&MixerContext, Instance->Handle, Instance->hNotifyRTStreamingEvent);
+            /* VETTV(3i): log why RT event registration failed; without it the
+             * instance had neither RTStreamingEnabled nor LegacyStreaming set and
+             * the first WdmAudCommitWaveBufferByMMixer hit ASSERT(FALSE). */
+            if (MixerStatus != MM_STATUS_SUCCESS)
+                DPRINT1("MMixerRegisterRTStreamingEvent failed %lx (bWaveIn %u)\n", MixerStatus, bWaveIn);
             if (MixerStatus == MM_STATUS_SUCCESS)
             {
                 Instance->RTStreamingShadowBuffer = (PUCHAR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Instance->RTStreamingBufferLength);
@@ -1361,7 +1366,11 @@ WdmAudCommitWaveBufferByMMixer(
     }
     else
     {
-        ASSERT(FALSE);
+        /* VETTV(3i): was ASSERT(FALSE), which dropped into KDBG on first boot
+         * (HDA, WaveRT pin whose RT notification setup failed). Fail the
+         * commit instead so winmm gets an error rather than halting the guest. */
+        DPRINT1("CommitWaveBuffer: no streaming mode set (RT %u Legacy %u)\n",
+                SoundDeviceInstance->RTStreamingEnabled, SoundDeviceInstance->LegacyStreaming);
     }
     return MMSYSERR_NOTSUPPORTED;
 }
