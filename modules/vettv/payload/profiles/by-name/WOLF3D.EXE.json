@@ -1,0 +1,28 @@
+{
+  "id": "wolf3d-shareware-1.4",
+  "match": {
+    "name": "WOLF3D.EXE"
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "fixed 20000",
+    "machine": "svga_s3",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "normal",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "opl2",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "Real mode, SB digi + AdLib music. Hash unknown (DEICE). (generated from h2h-debian/dosbox-x by gen.py)"
+}
