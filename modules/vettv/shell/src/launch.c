@@ -66,6 +66,10 @@ void VtLaunch(const VT_GAME *g, VT_LAUNCH_RESULT *r)
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
+    /* QA ac2: always say which side picks the profile, so a missing
+       --profile= in cmd isn't mistaken for a dropped profile. */
+    if (viaVdm)
+        VtLog(L"launch profile=%s", g->json[0] ? g->json : L"auto (vetvdm lookup)");
     VtLog(L"launch kind=%s cmd=%s", VtKindName(g->kind), cmd);
     /* The launcher is foreground now; let the game (or DOSBox-X, a
        grandchild via vetvdm) take the foreground when its window opens. */

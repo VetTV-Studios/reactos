@@ -19,6 +19,7 @@
 #include "route.h"
 #include "vcore_util.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -42,10 +43,58 @@ static const char g_help[] =
     "  --version\n"
     "  --help\n";
 
+/*
+ * Bug #2: append one line to <temp>\vetvdm.log and flush it to disk
+ * before the layer starts, so the profile choice survives a hard
+ * power-off while the game is running.
+ */
+static void
+note_launch(const host *st)
+{
+    WCHAR path[MAX_PATH];
+    HANDLE file;
+    char line[160];
+    const char *src = vcore_profile_src_name(st->profile.src);
+    DWORD len, wrote = 0;
+
+    if (!st->have_temp || !join_path(path, MAX_PATH, st->temp, L"vetvdm.log"))
+        return;
+    _snprintf(line, sizeof(line), "launch profile=%s (%s)\r\n",
+              st->profile.id[0] ? st->profile.id : "-", src ? src : "-");
+    line[sizeof(line) - 1] = 0;
+    len = (DWORD)strlen(line);
+    file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL,
+                      OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE)
+        return;
+    WriteFile(file, line, len, &wrote, NULL);
+    FlushFileBuffers(file);
+    CloseHandle(file);
+}
+
+/* Inheritable <temp>\dosbox-x.out for the layer's stdout and stderr. */
+static HANDLE
+open_layer_out(const host *st)
+{
+    WCHAR path[MAX_PATH];
+    SECURITY_ATTRIBUTES sa;
+
+    if (!st->have_temp || !join_path(path, MAX_PATH, st->temp, L"dosbox-x.out"))
+        return NULL;
+    sa.nLength = sizeof(sa);
+    sa.lpSecurityDescriptor = NULL;
+    sa.bInheritHandle = TRUE;
+    /* Write-through: every write the child makes reaches the disk. */
+    return CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                       &sa, CREATE_ALWAYS,
+                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
+}
+
 static DWORD
 launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code, DWORD *os_error)
 {
     vcore_job job;
+    HANDLE out = NULL;
     const WCHAR *app = NULL;
     DWORD status;
 
@@ -60,7 +109,20 @@ launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code, DWORD *os_er
         return VETVDM_E_INTERNAL;
     if (!app || !app[0] || !command)
         return VETVDM_E_NOLAYER;
-    status = vcore_launch_in_job(app, command, st->cwd[0] ? st->cwd : NULL, &job);
+    if (layer == VETVDM_LAYER_DOSBOXX || layer == VETVDM_LAYER_WIN31)
+    {
+        note_launch(st);
+        out = open_layer_out(st);
+        if (out == INVALID_HANDLE_VALUE)
+            out = NULL;
+    }
+    status = vcore_launch_in_job(app, command, st->cwd[0] ? st->cwd : NULL, out, &job);
+    if (out)
+    {
+        /* The child holds its own copy; flush and drop ours. */
+        CloseHandle(out);
+        out = NULL;
+    }
     if (os_error)
         *os_error = job.os_error;
     if (status != VETVDM_OK)
