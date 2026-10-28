@@ -67,7 +67,7 @@ static void Reload(void)
     if (g_lib.count)
         wsprintfW(g_status, L"%d games. Arrows to move, Enter to play, F5 to refresh, F10 for the desktop.", g_lib.count);
     else
-        lstrcpyW(g_status, L"No games yet. Put each game in its own folder under D:\\Games, then press F5.");
+        lstrcpyW(g_status, L"No games yet. Put each game in its own folder under C:\\Games, then press F5.");
     if (g_dataFallback)
         lstrcatW(g_status, L" (Settings are saved next to the launcher.)");
 }
