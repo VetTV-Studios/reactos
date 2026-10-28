@@ -27,12 +27,13 @@
 
 DWORD
 vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
-                   vcore_job *out)
+                   HANDLE std_out, vcore_job *out)
 {
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION info;
     STARTUPINFOW si;
     PROCESS_INFORMATION pi;
     DWORD flags;
+    BOOL inherit = FALSE;
 
     if (!out || !app || !app[0] || !cmdline)
         return VETVDM_E_INTERNAL;
@@ -58,6 +59,18 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
 
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
+    /*
+     * Bug #2: DOSBox-X's [log] logfile= never wrote anything on ReactOS.
+     * Give the child a real file as stdout and stderr instead.
+     */
+    if (std_out && std_out != INVALID_HANDLE_VALUE)
+    {
+        si.dwFlags |= STARTF_USESTDHANDLES;
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        si.hStdOutput = std_out;
+        si.hStdError = std_out;
+        inherit = TRUE;
+    }
     memset(&pi, 0, sizeof(pi));
     /*
      * vettvshell runs vetvdm inside its own job, and XP-era kernels and
@@ -65,11 +78,11 @@ vcore_launch_in_job(const WCHAR *app, WCHAR *cmdline, const WCHAR *cwd,
      * forbids that, start the child without it and stay in the outer job.
      */
     flags = CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB;
-    if (!CreateProcessW(app, cmdline, NULL, NULL, FALSE, flags, NULL,
+    if (!CreateProcessW(app, cmdline, NULL, NULL, inherit, flags, NULL,
                        (cwd && cwd[0]) ? cwd : NULL, &si, &pi))
     {
         flags = CREATE_SUSPENDED;
-        if (!CreateProcessW(app, cmdline, NULL, NULL, FALSE, flags, NULL,
+        if (!CreateProcessW(app, cmdline, NULL, NULL, inherit, flags, NULL,
                            (cwd && cwd[0]) ? cwd : NULL, &si, &pi))
         {
             out->os_error = GetLastError();
