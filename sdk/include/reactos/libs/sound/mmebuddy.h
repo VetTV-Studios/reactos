@@ -682,6 +682,11 @@ VOID
 DoWaveStreaming(
     IN  PSOUND_DEVICE_INSTANCE SoundDeviceInstance);
 
+MMRESULT
+PerformWaveStreaming(
+    IN  PSOUND_DEVICE_INSTANCE SoundDeviceInstance,
+    IN  PVOID Parameter);
+
 VOID CALLBACK
 CompleteIO(
     IN  DWORD dwErrorCode,
