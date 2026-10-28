@@ -164,7 +164,6 @@ build_conf(host *st, int win31, vcore_buf *conf, WCHAR *conf_path, DWORD cch_pat
     char cd_rel[MAX_PATH * 3];
     char work[4];
     char result[4];
-    char logfile[1024];
     char *template_text = NULL;
     vcore_conf_input input;
     vcore_lock_report locks;
@@ -343,21 +342,6 @@ build_conf(host *st, int win31, vcore_buf *conf, WCHAR *conf_path, DWORD cch_pat
     if (truncated)
         warn_add(st->warn, sizeof(st->warn), "truncated-tail");
 
-    if (vcore_wide_to_utf8(st->temp, logfile, sizeof(logfile)) != VETVDM_OK)
-        return VETVDM_E_CMDLINE;
-    {
-        unsigned used = vcore_cstr_len(logfile);
-        const char *tail = "/dosbox.log";
-        unsigned k;
-        if (used && logfile[used - 1] == '\\')
-            used--;
-        if (used + 11 >= sizeof(logfile))
-            return VETVDM_E_CMDLINE;
-        for (k = 0; tail[k]; k++)
-            logfile[used++] = (tail[k] == '/') ? '\\' : tail[k];
-        logfile[used] = 0;
-    }
-
     if (st->policy.conf_template[0])
     {
         char *buf = (char *)malloc(256u * 1024u);
@@ -390,7 +374,7 @@ build_conf(host *st, int win31, vcore_buf *conf, WCHAR *conf_path, DWORD cch_pat
     input.args_for_profile = args_utf;
     input.use_profile_autoexec = (!win31 && st->profile.n_autoexec > 0) ? 1 : 0;
     input.result_drive = result;
-    input.logfile = logfile;
+    /* No [log] logfile=: it never writes on ReactOS. Read <temp>\dosbox-x.out. */
     status = vcore_conf_build(&input, conf, &locks);
     free(template_text);
     if (status != VETVDM_OK)
