@@ -17,22 +17,10 @@ The ReactOS build does not compile this directory yet. Build & Kernel adds `add_
 RosBE or mingw-w64 i686. From this directory, the launcher:
 
 ```
-i686-w64-mingw32-gcc -std=gnu99 -Wall -Wextra -Werror -O2 \
-  -D_WIN32_WINNT=0x0502 -DWINVER=0x502 -DUNICODE -D_UNICODE \
-  -mconsole -municode \
-  -I. -Icore -Ivetvdm -Ithird_party \
-  -o vetvdm.exe \
-  vetvdm/main.c vetvdm/hostutil.c vetvdm/host_route.c \
-  vetvdm/host_dosbox.c vetvdm/host_doscmd.c vetvdm/host_wine.c \
-  vetvdm/host_ntvdm.c vetvdm/host_log.c \
-  vetvdm/cmdline.c vetvdm/cmdline_norm.c vetvdm/cmdline_quote.c \
-  vetvdm/image.c vetvdm/route.c vetvdm/ask.c vetvdm/image_io.c \
-  core/buf.c core/utf8.c core/sha256.c core/quote.c \
-  core/policy.c core/profile.c core/profile_json.c \
-  core/conf.c core/conf_emit.c core/dryrun.c core/log.c \
-  core/policy_reg.c core/launch.c core/tempdir.c vetvdm_paths.c \
-  -lshell32 -luser32 -ladvapi32 -lkernel32
+./build-host.sh [vetvdm.exe]
 ```
+
+`build-host.sh` holds the full command. It links with `-s`, image base 0x400000 and `--no-insert-timestamp`, so rebuilds are byte-identical. Never add a `.gnu_debuglink` afterwards: objcopy puts it at VMA 0, below the image base, and ReactOS rejects the exe with error 193.
 
 The unit test (command line, NT paths, MZ/NE/LE/LX/PE routing, conf locks, SHA-256, golden dry-run text) also builds as a native program. That build does not run the Win32 host. Run it from this directory so `core/tests/golden/` resolves.
 
