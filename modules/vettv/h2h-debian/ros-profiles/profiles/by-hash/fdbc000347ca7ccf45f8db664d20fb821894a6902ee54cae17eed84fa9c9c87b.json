@@ -1,0 +1,31 @@
+{
+  "id": "lure-of-the-temptress",
+  "match": {
+    "sha256": "fdbc000347ca7ccf45f8db664d20fb821894a6902ee54cae17eed84fa9c9c87b",
+    "name": "LURE.EXE",
+    "size": 136956
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "auto",
+    "machine": "svga_s3",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "auto",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplemu": "default",
+        "oplmode": "opl2",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "Ported from the ReactOS profile: sb16, mpu401=none, oplmode=opl2 (Lure auto-detects MPU first). (generated from h2h-debian/dosbox-x by gen.py)"
+}
