@@ -1,0 +1,28 @@
+{
+  "id": "doom-shareware-1.9",
+  "match": {
+    "name": "DOOM.EXE"
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "max",
+    "machine": "svga_s3",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "dynamic",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "opl3",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "DOS4GW, VGA. EXE hash/size unknown until DEICE install; by-name only. OPL: no GM synth on the Debian image (same as ReactOS). (generated from h2h-debian/dosbox-x by gen.py)"
+}

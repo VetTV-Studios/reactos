@@ -1,0 +1,28 @@
+{
+  "id": "epic-pinball-shareware",
+  "match": {
+    "name": "PINBALL.EXE"
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "fixed 25000",
+    "machine": "svga_s3",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "normal",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "auto",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "SB digital music (MOD player), no FM needed. Archive not in games-local; hash unknown. (generated from h2h-debian/dosbox-x by gen.py)"
+}

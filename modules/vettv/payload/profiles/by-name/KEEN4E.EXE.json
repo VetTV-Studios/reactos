@@ -1,0 +1,28 @@
+{
+  "id": "keen4-shareware",
+  "match": {
+    "name": "KEEN4E.EXE"
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "cycles": "fixed 12000",
+    "machine": "ega",
+    "memsize": "16",
+    "mpu401": "none",
+    "sbtype": "sb16",
+    "extra": {
+      "cpu": {
+        "core": "normal",
+        "cputype": "auto"
+      },
+      "sblaster": {
+        "dma": "1",
+        "hdma": "5",
+        "irq": "7",
+        "oplmode": "opl2",
+        "sbbase": "220"
+      }
+    }
+  },
+  "notes": "EGA, AdLib. Keen 4 archive not in games-local yet; hash unknown. (generated from h2h-debian/dosbox-x by gen.py)"
+}
