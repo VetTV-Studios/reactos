@@ -1,0 +1,14 @@
+{
+  "id": "lure-of-the-temptress",
+  "match": {
+    "sha256": "fdbc000347ca7ccf45f8db664d20fb821894a6902ee54cae17eed84fa9c9c87b",
+    "name": "LURE.EXE",
+    "size": 136956
+  },
+  "layer": "dosboxx",
+  "dosbox": {
+    "sbtype": "sb16",
+    "mpu401": "none"
+  },
+  "notes": "ReactOS has no midiOut synth; Lure's MPU-401 music logged 'Can't send midi message' and was silent (bk-hda-relaunch r3a lure1: 23 errors). mpu401=none cuts that to 1 init-time error but lnm1 still had no audio frames, so Lure's own sound setup must also be set to Sound Blaster/AdLib. Forced values (hostkey=mapper, no mapperfile) come from vetvdm §5.1 and are not set here. Hash from Build bk-stall vetvdm.log. GM synth deferred pending soundfont licence audit."
+}
