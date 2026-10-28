@@ -67,7 +67,7 @@ static void Reload(void)
     if (g_lib.count)
         wsprintfW(g_status, L"%d games. Arrows to move, Enter to play, F5 to refresh, F10 for the desktop.", g_lib.count);
     else
-        lstrcpyW(g_status, L"No games yet. Put each game in its own folder under D:\\Games, then press F5.");
+        lstrcpyW(g_status, L"No games yet. Put each game in its own folder under C:\\Games, then press F5.");
     if (g_dataFallback)
         lstrcatW(g_status, L" (Settings are saved next to the launcher.)");
 }
@@ -251,11 +251,19 @@ static void ExitToDesktop(void)
     VtLog(L"exit to desktop");
 }
 
+static BOOL g_yielded; /* a foreign system dialog is up; don't re-raise */
+
 static void Activate(void)
 {
-    if (g_running)
+    if (g_running) {
+        VtLog(L"--activate wake ignored: game running");
         return;
+    }
+    VtLog(L"--activate wake");
+    g_yielded = FALSE;
+    Reload(); /* show the controls hint, not the last status message */
     CoverScreen();
+    InvalidateRect(g_wnd, NULL, FALSE);
     SetForegroundWindow(g_wnd);
 }
 
@@ -289,8 +297,19 @@ static void Move(int dShelf, int dCol)
     InvalidateRect(g_wnd, NULL, FALSE);
 }
 
+static UINT g_msgTaskbarCreated; /* registered "TaskbarCreated" */
+#define TIMER_RAISE 2
+#define WM_APP_CHECKFG (WM_APP + 2)
+static int g_raiseTicks;           /* startup re-raise passes left */
+
 static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
 {
+    /* Explorer's taskbar is topmost too; when it is created after us it
+       lands above the launcher and hides the hint line (QA 158bdce41d). */
+    if (g_msgTaskbarCreated && m == g_msgTaskbarCreated) {
+        if (IsWindowVisible(w) && !g_running && !g_yielded) CoverScreen();
+        return 0;
+    }
     switch (m) {
     case WM_PAINT: {
         PAINTSTRUCT ps;
@@ -308,6 +327,13 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
     case WM_ERASEBKGND:
         return 1;
     case WM_TIMER:
+        if (wp == TIMER_RAISE) {
+            /* Fallback for shells that don't broadcast TaskbarCreated. */
+            if (IsWindowVisible(w) && !g_running && !g_yielded && GetForegroundWindow() == w)
+                CoverScreen();
+            if (--g_raiseTicks <= 0) KillTimer(w, TIMER_RAISE);
+            return 0;
+        }
         InvalidateRect(w, NULL, FALSE); /* clock, once a minute is plenty */
         return 0;
     case WM_KEYDOWN:
@@ -335,6 +361,48 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
            F10 a stray click (e.g. meant for the taskbar) must not. */
         if (!g_running && IsWindowVisible(w) && GetForegroundWindow() == w)
             StartGame();
+        return 0;
+    case WM_ACTIVATEAPP:
+        /* Another process took the foreground. Check once it has settled. */
+        if (!wp && !g_running && IsWindowVisible(w))
+            PostMessageW(w, WM_APP_CHECKFG, 0, 0);
+        else if (wp && g_yielded) {
+            g_yielded = FALSE; /* the dialog is gone and we are back */
+            CoverScreen();
+        }
+        break;
+    case WM_APP_CHECKFG: {
+        /* A system dialog from another process (Explorer's shut-down box,
+           winlogon/msgina, a "program not responding" box) must not sit
+           under a topmost fullscreen launcher. Drop topmost for dialogs
+           only; the taskbar itself is not a dialog, so it stays covered. */
+        HWND fg = GetForegroundWindow();
+        WCHAR cls[32];
+        DWORD pid = 0;
+        if (fg && fg != w && !g_yielded) {
+            GetWindowThreadProcessId(fg, &pid);
+            if (pid != GetCurrentProcessId() && GetClassNameW(fg, cls, 32) &&
+                !lstrcmpW(cls, L"#32770")) {
+                g_yielded = TRUE;
+                KillTimer(w, TIMER_RAISE);
+                SetWindowPos(w, HWND_NOTOPMOST, 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                SetWindowPos(fg, HWND_TOP, 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                VtLog(L"yield topmost to foreign dialog pid=%lu", pid);
+            }
+        }
+        return 0;
+    }
+    case WM_QUERYENDSESSION:
+        VtLog(L"WM_QUERYENDSESSION lp=0x%lx: allowing", (DWORD)lp);
+        return TRUE; /* never veto logoff/shutdown */
+    case WM_ENDSESSION:
+        if (wp) {
+            VtLog(L"WM_ENDSESSION: session ending");
+            if (g_kbHook) { UnhookWindowsHookEx(g_kbHook); g_kbHook = NULL; }
+            ShowWindow(w, SW_HIDE);
+        }
         return 0;
     case WM_APP_DONE:
         GameDone();
@@ -403,6 +471,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     RegisterClassW(&wc);
 
     Reload();
+    g_msgTaskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
     g_wnd = CreateWindowExW(WS_EX_TOPMOST, wc.lpszClassName, L"VetTV Launcher", WS_POPUP,
                             0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
                             NULL, NULL, inst, NULL);
@@ -412,6 +481,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdLine, int show)
     CoverScreen(); /* the taskbar may have come up after we were created */
     SetForegroundWindow(g_wnd);
     SetTimer(g_wnd, 1, 30000, NULL);
+    g_raiseTicks = 20; /* every 500 ms for the first 10 s */
+    SetTimer(g_wnd, TIMER_RAISE, 500, NULL);
     /* --no-kbhook: debug switch so QA/Build can rule the quit-combo hook in
        or out of keyboard problems. The quit combo is unavailable with it. */
     if (argv && argc >= 2 && !lstrcmpiW(argv[1], L"--no-kbhook")) {
