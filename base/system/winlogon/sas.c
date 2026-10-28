@@ -349,6 +349,31 @@ PlayLogonSoundThread(
         goto Cleanup;
     }
 
+    /* VetTV: on first boot a new audio device (e.g. AC97, or real-hardware
+     * HDA with a new PCI ID) is installed by PnP only after logon, so wdmaud
+     * may be running with no wave device yet. Wait up to ~60 s for one.
+     * winmm enumerates devices only when it is loaded (MMDRV_Init in DllMain),
+     * so load and free it on every poll. This runs in its own thread, so
+     * logon and the shell are not delayed. */
+    for (Index = 0; Index < 120; Index++)
+    {
+        typedef UINT (WINAPI *WAVEOUTGETNUMDEVS)(VOID);
+        WAVEOUTGETNUMDEVS pwaveOutGetNumDevs;
+        UINT NumDevs = 0;
+        HMODULE hWinmm = LoadLibraryW(L"winmm.dll");
+        if (!hWinmm)
+            break;
+        pwaveOutGetNumDevs = (WAVEOUTGETNUMDEVS)GetProcAddress(hWinmm, "waveOutGetNumDevs");
+        if (pwaveOutGetNumDevs)
+            NumDevs = pwaveOutGetNumDevs();
+        FreeLibrary(hWinmm);
+        if (!pwaveOutGetNumDevs || NumDevs > 0)
+            break;
+        Sleep(500);
+    }
+    if (Index)
+        ERR("VetTV: waited %lu ms for a wave device (found=%d)\n", Index * 500, Index < 120);
+
     /* Sound subsystem is running. Play logon sound. */
     TRACE("Playing %s sound\n", SoundData->IsStartup ? "startup" : "logon");
     if (!ImpersonateLoggedOnUser(SoundData->UserToken))
