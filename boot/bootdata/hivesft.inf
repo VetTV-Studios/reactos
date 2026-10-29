@@ -568,6 +568,12 @@ HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\BackupPath",
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",,0x00000012
 ; VetTV: start the VetTV game launcher at logon (Shell/UX spec).
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Run","VetTVShell",0x00020000,"%SystemDrive%\VetTV\shell\vettvshell.exe"
+
+; VetTV (B2): turn the kernel32 DOS/Win16 launch hook on in RetroOS images.
+; vettv_vdm.c treats a missing key as off (LAUNCH-HOOK.md), so without this line
+; Run box / Explorer / cmd launches of a DOS exe went straight to stock NTVDM.
+; Set to 0 to get stock behavior back.
+HKLM,"SOFTWARE\VetTV\RetroOS\VDM","HookEnabled",0x00010001,0x00000001
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Setup",,0x00000012
