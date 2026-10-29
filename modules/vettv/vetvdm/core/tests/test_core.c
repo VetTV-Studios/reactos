@@ -263,6 +263,18 @@ test_profile_and_policy(void)
                              fake_read, NULL, &prof) == VETVDM_OK, "hash mismatch falls through");
     check(strcmp(prof.id, "namehit") == 0 && prof.src == VCORE_SRC_BYNAME, "name hit");
 
+    /* by-hash name truncated on the ISO: INDEX.TXT maps hash -> 8.3 copy. */
+    g_files[1].path = L"C:\\VetTV\\profiles\\by-hash\\INDEX.TXT";
+    g_files[1].body = "# sha256 name\r\n"
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA AAAAAAAA.JSN\r\n";
+    g_files[4].path = L"C:\\VetTV\\profiles\\by-hash\\AAAAAAAA.JSN";
+    g_files[4].body = "{\"id\":\"indexhit\",\"match\":{\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}";
+    check(vcore_profile_lookup(dirs, 1, L"C:\\Games\\DOOM.EXE", NULL, 100, sha,
+                             fake_read, NULL, &prof) == VETVDM_OK, "lookup index");
+    check(strcmp(prof.id, "indexhit") == 0 && prof.src == VCORE_SRC_BYHASH, "index hit");
+    g_files[1].path = NULL;
+    g_files[4].path = NULL;
+
     g_files[2].body = "{\"id\":\"namesize\",\"match\":{\"size\":99}}";
     check(vcore_profile_lookup(dirs, 1, L"C:\\Games\\DOOM.EXE", NULL, 100, sha,
                              fake_read, NULL, &prof) == VETVDM_OK, "size miss");
