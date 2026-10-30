@@ -1,8 +1,9 @@
 {
   "id": "castle-of-the-winds-2-freeware",
   "match": {
-    "name": "CASTLE2.EXE"
+    "name": "CASTLE2.EXE",
+    "size": 978784
   },
   "layer": "winevdm",
-  "notes": "Win16 NE, Castle of the Winds part 2 (freeware, Rick Saada 1998). User supplies the files; nothing bundled. Hash/size unknown; by-name only."
+  "notes": "Win16 NE, Castle of the Winds part 2, freeware by Rick Saada (1998). User supplies the files; nothing bundled. Size from QA's copy (PR #28 run). Licence: splash says non-registered use prohibited; Lead to confirm freeware release covers it."
 }
