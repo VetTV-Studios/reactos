@@ -80,6 +80,7 @@ VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
                    IN LPCWSTR Kind, OUT PWCHAR *NewCmdLine)
 {
     static const WCHAR Tail[] = L"\\System32\\vetvdm.exe";
+    /* VETTV: --type=ne|mz hint is OFF until QA's freeze (issue 3 on PR #28) is fixed; old --from-hook --kind= line restored. */
     static const WCHAR Mid[] = L"\" --from-hook --kind=";
     static const WCHAR Img[] = L" --image=\"";
     static const WCHAR Sep[] = L"\" -- ";
