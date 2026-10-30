@@ -351,6 +351,7 @@ do_launch(host *st)
         st->layer = layer;
     }
 
+retry:
     vcore_buf_init(&conf);
     conf_path[0] = 0;
     if (layer == VETVDM_LAYER_DOSBOXX || layer == VETVDM_LAYER_WIN31)
@@ -375,6 +376,28 @@ do_launch(host *st)
     release_own_console(st);
     status = launch_layer(st, layer, command, &code, &os_error);
     HeapFree(GetProcessHeap(), 0, command);
+    command = NULL;
+    /*
+     * WineVDM (or the Win3.1 guest) found but could not start: walk the
+     * Win16 fallback order instead of failing. Forced layers do not fall back.
+     */
+    if (!st->forced && st->kind == VETVDM_KIND_WIN16 &&
+        (layer == VETVDM_LAYER_WINEVDM || layer == VETVDM_LAYER_WIN31) &&
+        status == VETVDM_E_START)
+    {
+        int next = vetvdm_win16_next_layer(layer, st->dosbox_ok, st->win31_ok);
+        char note[48];
+        wsprintfA(note, "%s-start-failed:err=%lu", vetvdm_layer_name(layer),
+                  (unsigned long)os_error);
+        warn_add(st->warn, sizeof(st->warn), note);
+        if (next != VETVDM_LAYER_NONE)
+        {
+            warn_add(st->warn, sizeof(st->warn), "layer-fallback");
+            layer = next;
+            st->layer = layer;
+            goto retry;
+        }
+    }
     /*
      * NTVDM reached only as a fallback means the real DOS player is not
      * installed. If NTVDM cannot start the program either, report the

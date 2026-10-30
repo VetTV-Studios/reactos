@@ -89,6 +89,13 @@ test_cmdline(void)
     status = vetvdm_cmdline_parse(L"vetvdm.exe --caller=shell --kind=dos -- C:\\a.exe", &cmd);
     check(status == VETVDM_OK && cmd.from_shell == 1, "caller shell");
     vetvdm_cmdline_free(&cmd);
+    status = vetvdm_cmdline_parse(L"vetvdm.exe --type=ne \"C:\\Win\\SOL.EXE\" /x", &cmd);
+    check(status == VETVDM_OK && cmd.type_hint == VETVDM_TYPE_NE && cmd.kind == VETVDM_KIND_AUTO, "type ne hint");
+    check(vcore_w_ieq(cmd.image, L"C:\\Win\\SOL.EXE") && cmd.args && vcore_w_ieq(cmd.args, L"/x"), "type ne image args");
+    vetvdm_cmdline_free(&cmd);
+    status = vetvdm_cmdline_parse(L"vetvdm.exe --type=pe C:\\a.exe", &cmd);
+    check(status == VETVDM_E_CMDLINE, "type bad rejected");
+    vetvdm_cmdline_free(&cmd);
     status = vetvdm_cmdline_parse(L"vetvdm.exe --caller=cli -- C:\\a.exe", &cmd);
     check(status == VETVDM_E_CMDLINE, "caller other rejected");
     vetvdm_cmdline_free(&cmd);
@@ -314,4 +321,8 @@ test_classify_and_route(void)
     check(vetvdm_layer_for_launch(VETVDM_LAYER_WIN31, 1, 1, 1, 0, &err) == VETVDM_LAYER_WIN31 && err == VETVDM_E_WIN31, "forced win31");
     check(vetvdm_layer_for_launch(VETVDM_LAYER_WINEVDM, 0, 1, 0, 0, &err) == VETVDM_LAYER_NTVDM && err == VETVDM_OK, "wine fallback");
     check(vetvdm_layer_for_launch(VETVDM_LAYER_WINEVDM, 1, 1, 0, 0, &err) == VETVDM_LAYER_WINEVDM && err == VETVDM_E_NOLAYER, "forced wine");
+    check(vetvdm_layer_for_launch(VETVDM_LAYER_WINEVDM, 0, 1, 0, 1, &err) == VETVDM_LAYER_WIN31 && err == VETVDM_OK, "wine to win31");
+    check(vetvdm_layer_for_launch(VETVDM_LAYER_WINEVDM, 0, 0, 0, 1, &err) == VETVDM_LAYER_NTVDM && err == VETVDM_OK, "wine to ntvdm no dosbox");
+    check(vetvdm_win16_next_layer(VETVDM_LAYER_WIN31, 1, 1) == VETVDM_LAYER_NTVDM, "win31 next ntvdm");
+    check(vetvdm_win16_next_layer(VETVDM_LAYER_NTVDM, 1, 1) == VETVDM_LAYER_NONE, "ntvdm last");
 }

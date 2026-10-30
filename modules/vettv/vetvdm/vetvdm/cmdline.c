@@ -310,6 +310,18 @@ set_kind(vetvdm_cmdline *out, const WCHAR *value)
 }
 
 static DWORD
+set_type(vetvdm_cmdline *out, const WCHAR *value)
+{
+    if (vcore_w_ieq(value, L"ne"))
+        out->type_hint = VETVDM_TYPE_NE;
+    else if (vcore_w_ieq(value, L"mz"))
+        out->type_hint = VETVDM_TYPE_MZ;
+    else
+        return fail(out, "bad type");
+    return VETVDM_OK;
+}
+
+static DWORD
 set_layer(vetvdm_cmdline *out, const WCHAR *value)
 {
     int layer = vetvdm_layer_from_name(value);
@@ -443,7 +455,8 @@ vetvdm_cmdline_parse(const WCHAR *raw, vetvdm_cmdline *out)
             out->help = 1;
         else if (option_is(token, L"--version"))
             out->version = 1;
-        else if (option_is(token, L"--kind") || option_is(token, L"--layer") ||
+        else if (option_is(token, L"--type") || option_is(token, L"--kind") ||
+                 option_is(token, L"--layer") ||
                  option_is(token, L"--profile") || option_is(token, L"--image") ||
                  option_is(token, L"--cwd") || option_is(token, L"--log"))
         {
@@ -459,7 +472,9 @@ vetvdm_cmdline_parse(const WCHAR *raw, vetvdm_cmdline *out)
                 free_args(args, nargs);
                 return fail(out, "option needs a value");
             }
-            if (option_is(token, L"--kind"))
+            if (option_is(token, L"--type"))
+                status = set_type(out, value);
+            else if (option_is(token, L"--kind"))
                 status = set_kind(out, value);
             else if (option_is(token, L"--layer"))
                 status = set_layer(out, value);

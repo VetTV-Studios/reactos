@@ -46,6 +46,7 @@ DWORD vetvdm_decide_route(const vetvdm_route_input *in, vetvdm_route_result *out
  * Dry-run uses vetvdm_decide_route only, so a missing DOSBox-X still prints
  * the DOSBox conf.
  */
+int vetvdm_win16_next_layer(int failed, int dosbox_ok, int win31_ok);
 int vetvdm_layer_for_launch(int desired, int forced,
                            int dosbox_ok, int wine_ok, int win31_ok,
                            DWORD *error);

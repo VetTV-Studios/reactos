@@ -22,6 +22,10 @@
 #define VETVDM_KIND_DOS   1
 #define VETVDM_KIND_WIN16 2
 
+#define VETVDM_TYPE_NONE 0
+#define VETVDM_TYPE_NE   1
+#define VETVDM_TYPE_MZ   2
+
 #define VETVDM_LAYER_NONE    0
 #define VETVDM_LAYER_DOSBOXX 1
 #define VETVDM_LAYER_WINEVDM 2
@@ -38,6 +42,8 @@ typedef struct vetvdm_cmdline
     int help;
     int version;
     int kind;
+    /* --type=ne|mz hint (VETVDM_TYPE_*). Never trusted: the header decides. */
+    int type_hint;
     int layer;
     WCHAR image[MAX_PATH];
     WCHAR profile[MAX_PATH];
