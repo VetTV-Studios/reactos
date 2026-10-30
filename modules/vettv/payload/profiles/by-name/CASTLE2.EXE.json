@@ -1,0 +1,8 @@
+{
+  "id": "castle-of-the-winds-2-freeware",
+  "match": {
+    "name": "CASTLE2.EXE"
+  },
+  "layer": "winevdm",
+  "notes": "Win16 NE, Castle of the Winds part 2 (freeware, Rick Saada 1998). User supplies the files; nothing bundled. Hash/size unknown; by-name only."
+}

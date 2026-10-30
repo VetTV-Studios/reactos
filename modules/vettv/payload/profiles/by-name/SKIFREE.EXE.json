@@ -1,0 +1,8 @@
+{
+  "id": "skifree-1.04-freeware",
+  "match": {
+    "name": "SKIFREE.EXE"
+  },
+  "layer": "winevdm",
+  "notes": "Win16 NE, freeware by Chris Pirih (ski.ihoc.net). User supplies the EXE; nothing bundled. Hash/size unknown until QA's own copy is measured; by-name only."
+}
