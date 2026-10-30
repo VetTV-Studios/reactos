@@ -494,9 +494,11 @@ acpi_bus_generate_event (
 	if (!device)
 		return_VALUE(AE_BAD_PARAMETER);
 
-	/* drop event on the floor if no one's listening */
-	if (!event_is_open)
-		return_VALUE(0);
+	/* VETTV (R-PWR-2): don't drop the event when no waiter is armed. The
+	 * power manager re-arms IOCTL_GET_SYS_BUTTON_EVENT from a work item and a
+	 * new thread, so a press in that window (or while those are starved by a
+	 * busy game) was lost. Events are queued and picked up by the next
+	 * acpi_bus_receive_event(). Only button notifications come through here. */
 
     /* Data shouldn't even get near 24 bits */
     ASSERT(!(data & 0xFF000000));
@@ -524,14 +526,19 @@ acpi_bus_receive_event (
 	if (!event)
 		return AE_BAD_PARAMETER;
 
-	event_is_open++;
-	KeWaitForSingleObject(&AcpiEventQueue,
-			      Executive,
-			      KernelMode,
-			      FALSE,
-			      NULL);
-	event_is_open--;
-	KeClearEvent(&AcpiEventQueue);
+	/* VETTV (R-PWR-2): an event may already be queued (see
+	 * acpi_bus_generate_event), so only wait when the list is empty. */
+	while (list_empty(&acpi_bus_event_list))
+	{
+		event_is_open++;
+		KeWaitForSingleObject(&AcpiEventQueue,
+				      Executive,
+				      KernelMode,
+				      FALSE,
+				      NULL);
+		event_is_open--;
+		KeClearEvent(&AcpiEventQueue);
+	}
 
 	if (list_empty(&acpi_bus_event_list))
 		return_VALUE(AE_NOT_FOUND);

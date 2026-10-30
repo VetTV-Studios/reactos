@@ -191,6 +191,13 @@ ButtonWaitThread(PVOID Context)
     struct acpi_bus_event event;
     ULONG ButtonEvent;
 
+    /* VETTV (R-PWR-2): this thread is created at the default system thread
+     * priority (8). A busy game (DOSBox-X runs with priority=higher, i.e.
+     * ABOVE_NORMAL or HIGH class) then starves it, so a power button press is
+     * signalled but never delivered to the power manager. Run it at low
+     * realtime priority; it only wakes for ACPI button notifications. */
+    KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+
     while (ACPI_SUCCESS(result = acpi_bus_receive_event(&event)) &&
            event.type != ACPI_BUTTON_NOTIFY_STATUS);
 

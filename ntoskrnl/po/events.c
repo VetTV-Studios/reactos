@@ -94,9 +94,12 @@ PopGetSysButtonCompletion(
         ExFreePoolWithTag(SysButtonContext, 'IWOP');
         return STATUS_SUCCESS;
     }
+    /* VETTV (R-PWR-2): re-arm on the critical queue (priority 13) instead of
+     * the delayed queue (12), so a busy ABOVE_NORMAL/HIGH class game can't
+     * keep the next button IRP from being sent (lid/sleep/second press). */
     IoQueueWorkItem(SysButtonContext->WorkItem,
                     PopGetSysButton,
-                    DelayedWorkQueue,
+                    CriticalWorkQueue,
                     SysButtonContext);
 
     return STATUS_SUCCESS /* STATUS_CONTINUE_COMPLETION */;
