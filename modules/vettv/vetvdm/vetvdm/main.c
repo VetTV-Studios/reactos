@@ -132,6 +132,8 @@ launch_layer(host *st, int layer, WCHAR *command, DWORD *exit_code, DWORD *os_er
     if (job.nested)
         warn_add(st->warn, sizeof(st->warn), "job-nested");
     status = vcore_job_wait(&job, exit_code);
+    if (layer == VETVDM_LAYER_WINEVDM && st->fresh_wine)
+        fresh_wine_cleanup(st, &job, job.pid);
     vcore_job_close(&job);
     if (status != VETVDM_OK)
         return status;
@@ -312,12 +314,17 @@ console_process_count(void)
 static const char *
 release_own_console(const host *st, DWORD count)
 {
-    if (!st || st->cmd.from_hook)
-        return "keep-hook";
-    if (count != 1)
-        return count ? "keep-shared" : "keep-unknown";
-    FreeConsole();
-    return "free";
+    /*
+     * PR #28 item 2: this used to return "keep-hook" for every --from-hook
+     * launch, so a hook launch from a GUI parent (Start->Run, Explorer via
+     * the hook) kept vetvdm's own new console visible (QA: console=1:keep-hook).
+     * A count of 1 is only ever vetvdm's own console, so free it; a typed
+     * cmd launch shares cmd's console (count >= 2) and keeps it.
+     */
+    const char *act = vetvdm_console_action(st ? st->cmd.from_hook : 0, count);
+    if (act[0] == 'f')
+        FreeConsole();
+    return act;
 }
 
 /*
@@ -328,17 +335,20 @@ release_own_console(const host *st, DWORD count)
 static void
 note_route(host *st, int layer, DWORD console_n, const char *console_act)
 {
-    char line[256];
+    char line[320];
     const char *hint = st->cmd.type_hint == VETVDM_TYPE_NE ? "ne" :
         (st->cmd.type_hint == VETVDM_TYPE_MZ ? "mz" : "-");
 
     _snprintf(line, sizeof(line),
-              "route pid=%lu caller=%s kind=%s type=%s layer=%s profile=%s console=%lu:%s\r\n",
+              "route pid=%lu caller=%s kind=%s type=%s layer=%s profile=%s console=%lu:%s"
+              " fresh_winevdm=%d otvdm_pre=%ld wow_ini=%d\r\n",
               (unsigned long)GetCurrentProcessId(),
               st->cmd.from_hook ? "hook" : ((st->cmd.from_shell || st->cmd.profile[0]) ? "shell" : "cli"),
               vetvdm_kind_name(st->kind), hint, vetvdm_layer_name(layer),
               st->profile.id[0] ? st->profile.id : "-",
-              (unsigned long)console_n, console_act);
+              (unsigned long)console_n, console_act,
+              st->fresh_wine, layer == VETVDM_LAYER_WINEVDM ? st->otvdm_pre : -1L,
+              layer == VETVDM_LAYER_WINEVDM ? st->wow_ini : -1);
     line[sizeof(line) - 1] = 0;
     write_log_early(st, line);
 }
@@ -409,8 +419,9 @@ retry:
     }
     {
         DWORD n = console_process_count();
-        const char *act = (st->cmd.from_hook ? "keep-hook" :
-                           (n == 1 ? "free" : (n ? "keep-shared" : "keep-unknown")));
+        const char *act = vetvdm_console_action(st->cmd.from_hook, n);
+        if (layer == VETVDM_LAYER_WINEVDM)
+            fresh_wine_prepare(st);
         note_route(st, layer, n, act);
         release_own_console(st, n);
     }
@@ -472,6 +483,9 @@ run(void)
     st.started = GetTickCount();
     st.log_level = 1;
     st.kind = VETVDM_KIND_AUTO;
+    st.wow_ini = -1;
+    st.otvdm_pre = -1;
+    st.fresh_wine = fresh_wine_enabled();
     code = vetvdm_cmdline_parse(GetCommandLineW(), &st.cmd);
     if (code != VETVDM_OK)
     {

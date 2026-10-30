@@ -157,3 +157,20 @@ i686-w64-mingw32-gcc -std=gnu99 -Wall -Wextra -Werror -O2 \
 - `C:\VetTV\logs\vetvdm.log` (shared): one early `launch profile=` line, flushed before DOSBox-X starts, plus the full record after it exits.
 - `<temp>\vetvdm.log`: the same early line, per launch.
 - `<temp>\dosbox-x.out`: DOSBox-X's own stdout and stderr, written through. This is the file to read for DOSBox-X output. vetvdm no longer sets `[log] logfile=`, which never wrote anything on ReactOS.
+
+## Fresh WineVDM stopgap (PR #28, default off)
+
+Set `VETVDM_FRESH_WINEVDM=1` in the environment, or put
+`[vetvdm]` / `FreshWineVDM=1` in `vetvdm.ini` next to `vetvdm.exe`
+(the environment wins when set). For WineVDM launches vetvdm then logs
+`otvdm_pre=` (otvdm*.exe already running), reads `SeparateWOWVDM` from
+`otvdm.ini` next to `otvdmw.exe` (`wow_ini=`, warns `otvdm-ini-shared-wow`
+when 0), and after its own otvdmw.exe exits ends only processes still in
+its own job (or, nested in vettvshell's job, otvdm*.exe descendants of its
+own child), logged as `fresh-reaped:N`. The route line always carries
+`fresh_winevdm=0|1`.
+
+Console: a launch whose console has exactly one process (vetvdm's own,
+e.g. Start->Run or Explorer through the hook) frees it (`console=1:free`),
+with or without `--from-hook`. Typed cmd launches share cmd's console
+(count >= 2) and keep it (`keep-shared`).
