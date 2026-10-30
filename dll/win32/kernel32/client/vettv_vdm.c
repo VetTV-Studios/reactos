@@ -80,12 +80,12 @@ VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
                    IN LPCWSTR Kind, OUT PWCHAR *NewCmdLine)
 {
     static const WCHAR Tail[] = L"\\System32\\vetvdm.exe";
-    static const WCHAR Mid[] = L"\" --from-hook --type=";
-    static const WCHAR KindOpt[] = L" --kind="; /* VETTV: hint is "ne" for Win16, else "mz"; vetvdm's header check wins. */
+    /* VETTV: --type=ne|mz hint is OFF until QA's freeze (issue 3 on PR #28) is fixed; old --from-hook --kind= line restored. */
+    static const WCHAR Mid[] = L"\" --from-hook --kind=";
     static const WCHAR Img[] = L" --image=\"";
     static const WCHAR Sep[] = L"\" -- ";
     WCHAR VetVdmPath[MAX_PATH];
-    PCWSTR Root, Cmd, Type;
+    PCWSTR Root, Cmd;
     SIZE_T RootChars, TailChars, KindChars, ImageChars, CmdChars, Total;
     PWCHAR Buffer, Dest;
     *NewCmdLine = NULL;
@@ -107,20 +107,17 @@ VetTvRedirectToVdm(IN LPCWSTR ImagePath, IN LPCWSTR CommandLine,
         if (ImagePath[ImageChars] == L'"')
             return FALSE;
     KindChars = wcslen(Kind);
-    Type = (Kind[0] == L'w') ? L"ne" : L"mz";
     Cmd = CommandLine ? CommandLine : L"";
     CmdChars = wcslen(Cmd);
     if (KindChars > 8 || ImageChars > 32767 || CmdChars > 32767) return FALSE;
-    /* VETTV: "<SystemRoot>\System32\vetvdm.exe" --from-hook --type=ne|mz --kind=dos|win16 --image="<Win32 path>" -- <cmd> */
-    Total = 1 + RootChars + TailChars + (RTL_NUMBER_OF(Mid) - 1) + 2 + (RTL_NUMBER_OF(KindOpt) - 1) + KindChars +
+    /* VETTV: "<SystemRoot>\System32\vetvdm.exe" --from-hook --kind=dos|win16 --image="<Win32 path>" -- <cmd> */
+    Total = 1 + RootChars + TailChars + (RTL_NUMBER_OF(Mid) - 1) + KindChars +
             (RTL_NUMBER_OF(Img) - 1) + ImageChars + (RTL_NUMBER_OF(Sep) - 1) + CmdChars + 1;
     Buffer = RtlAllocateHeap(RtlGetProcessHeap(), 0, Total * sizeof(WCHAR));
     if (!Buffer) return FALSE;
     Dest = VetTvCopy(Buffer, L"\"", 1);
     Dest = VetTvCopy(Dest, VetVdmPath, RootChars + TailChars);
     Dest = VetTvCopy(Dest, Mid, RTL_NUMBER_OF(Mid) - 1);
-    Dest = VetTvCopy(Dest, Type, 2);
-    Dest = VetTvCopy(Dest, KindOpt, RTL_NUMBER_OF(KindOpt) - 1);
     Dest = VetTvCopy(Dest, Kind, KindChars);
     Dest = VetTvCopy(Dest, Img, RTL_NUMBER_OF(Img) - 1);
     Dest = VetTvCopy(Dest, ImagePath, ImageChars);
