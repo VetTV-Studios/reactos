@@ -109,6 +109,27 @@ DWORD vetvdm_path_resolve_os(vetvdm_path_kind kind, const WCHAR *suffix,
 
 `query_roots_ex` takes the shell callback and the exe path so tests can force a shell failure. NULL uses `SHGetFolderPathW` and `GetModuleFileNameW(NULL)`. `vetvdm.exe` calls `vetvdm_path_query_roots` or `vetvdm_path_resolve_os`.
 
+## Command line and Win16 routing
+
+```
+vetvdm.exe [--type=ne|mz] [options] "<full exe path>" <args>
+```
+
+- `--type=ne|mz` is an optional hint from the launch hook. vetvdm always reads the
+  MZ header, follows `e_lfanew` at 0x3C and checks the signature; the header wins
+  and a disagreeing hint only adds `type-hint-mismatch` to the log line.
+- `NE` with a Windows `ne_exetyp` routes to WineVDM (`otvdm.exe`, path from the
+  `WineVDMPath` policy value, then the bundled copy). DOS-extender NE stamps
+  (OS/2, DOS 4, Borland) stay on DOSBox-X.
+- Win16 fallback when WineVDM is missing or cannot start: DOSBox-X with the
+  user's own Windows 3.1 directory (configured path; Microsoft files are never
+  bundled), then ReactOS NTVDM. Each step adds `layer-fallback` to the log.
+- The route, reason and profile id are written to the shared `vetvdm.log`
+  (append, flushed before the layer starts).
+- Starter Win16 profiles (freeware, user-supplied files): `SKIFREE.EXE`,
+  `CASTLE1.EXE`, `CASTLE2.EXE` in `payload/profiles/by-name`, `"layer": "winevdm"`.
+- WineVDM pin: otya128/winevdm v0.9.0 (GPL-2.0, Wine parts LGPL-2.1+), see THIRD_PARTY.txt.
+
 ## Host test
 
 `vetvdm_paths_test.c` covers normal resolution, `SHGetFolderPathW` failure and fallback, `%` rejection (including "do not create"), and buffer edges (one short, exact fit, `MAX_PATH`, past `MAX_PATH`).
@@ -136,3 +157,20 @@ i686-w64-mingw32-gcc -std=gnu99 -Wall -Wextra -Werror -O2 \
 - `C:\VetTV\logs\vetvdm.log` (shared): one early `launch profile=` line, flushed before DOSBox-X starts, plus the full record after it exits.
 - `<temp>\vetvdm.log`: the same early line, per launch.
 - `<temp>\dosbox-x.out`: DOSBox-X's own stdout and stderr, written through. This is the file to read for DOSBox-X output. vetvdm no longer sets `[log] logfile=`, which never wrote anything on ReactOS.
+
+## Fresh WineVDM stopgap (PR #28, default off)
+
+Set `VETVDM_FRESH_WINEVDM=1` in the environment, or put
+`[vetvdm]` / `FreshWineVDM=1` in `vetvdm.ini` next to `vetvdm.exe`
+(the environment wins when set). For WineVDM launches vetvdm then logs
+`otvdm_pre=` (otvdm*.exe already running), reads `SeparateWOWVDM` from
+`otvdm.ini` next to `otvdmw.exe` (`wow_ini=`, warns `otvdm-ini-shared-wow`
+when 0), and after its own otvdmw.exe exits ends only processes still in
+its own job (or, nested in vettvshell's job, otvdm*.exe descendants of its
+own child), logged as `fresh-reaped:N`. The route line always carries
+`fresh_winevdm=0|1`.
+
+Console: a launch whose console has exactly one process (vetvdm's own,
+e.g. Start->Run or Explorer through the hook) frees it (`console=1:free`),
+with or without `--from-hook`. Typed cmd launches share cmd's console
+(count >= 2) and keep it (`keep-shared`).

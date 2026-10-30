@@ -33,3 +33,10 @@ WineVDM 0.8.1
   bundled:  the default path again, when WineVdmPath is set but missing
   fallback: %ProgramFiles%\otvdm\otvdmw.exe, then otvdm.exe in that directory
   note:    ReactOS ships 0.8.1. 0.9.0 is not used.
+
+WineVDM (otvdm) - NOT compiled in, NOT in this repo; runtime layer installed separately.
+  repo:    https://github.com/otya128/winevdm, tag v0.9.0 (e9e87734fd36eaa5c2e38d299a8cdc20786f4783)
+  licence: GPL-2.0; Wine-derived parts LGPL-2.1-or-later
+  build:   otvdm-for-old-windows-v0.9.0.zip sha256 79b1a4f992f8ff1f3b23f013c24c6640c22563b71c4dcb363b06f10ab0937205
+           (CI #2446; exact source commit unconfirmed - resolve before redistributing)
+  source:  refs/tags/v0.9.0 tarball sha256 d1b8002e152efe969ce5478d9f3a85a313f31e50560cabc245d769844e64a161
