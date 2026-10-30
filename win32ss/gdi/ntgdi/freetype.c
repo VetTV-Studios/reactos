@@ -6033,10 +6033,21 @@ TextIntRealizeFont(HFONT FontHandle, PTEXTOBJ pTextObj)
 
     /* Search private fonts */
     IntLockFreeType();
-    IntLockProcessPrivateFonts(Win32Process);
-    FindBestFontFromList(&TextObj->Font, &MatchPenalty, &SubstitutedLogFont,
-                         &Win32Process->PrivateFontListHead);
-    IntUnLockProcessPrivateFonts(Win32Process);
+    /*
+     * VETTV: Do not bind a public (stock/global) LFONT to a process-private
+     * font. The realized TextObj->Font is cached (TEXTOBJECT_INIT) and
+     * outlives the process; IntGdiCleanupPrivateFontsForProcess() frees the
+     * private FONTGDI/FT_Face on exit, leaving the stock font pointing at
+     * freed pool. otvdm adds VGAOEM.FON privately, so the 2nd Win16 launch
+     * in a boot hit ASSERT(face->charmap) in TextIntUpdateSize (page fault).
+     */
+    if (GreGetObjectOwner(TextObj->BaseObject.hHmgr) != GDI_OBJ_HMGR_PUBLIC)
+    {
+        IntLockProcessPrivateFonts(Win32Process);
+        FindBestFontFromList(&TextObj->Font, &MatchPenalty, &SubstitutedLogFont,
+                             &Win32Process->PrivateFontListHead);
+        IntUnLockProcessPrivateFonts(Win32Process);
+    }
 
     /* Search system fonts */
     FindBestFontFromList(&TextObj->Font, &MatchPenalty, &SubstitutedLogFont,
