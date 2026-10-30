@@ -82,6 +82,9 @@ vcore_log_format(const vcore_log_rec *rec, vcore_buf *line_out)
         add_clean(line_out, rec->sha256) != VETVDM_OK ||
         vcore_buf_puts(line_out, " kind=") != VETVDM_OK ||
         add_clean(line_out, rec->kind) != VETVDM_OK ||
+        (rec->type_hint && rec->type_hint[0] &&
+         (vcore_buf_puts(line_out, " type=") != VETVDM_OK ||
+          add_clean(line_out, rec->type_hint) != VETVDM_OK)) ||
         vcore_buf_puts(line_out, " layer=") != VETVDM_OK ||
         add_clean(line_out, rec->layer) != VETVDM_OK ||
         vcore_buf_puts(line_out, " profile=") != VETVDM_OK ||

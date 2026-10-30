@@ -158,6 +158,26 @@ test_quote_conf_hash_log(void)
     check(vcore_log_format(&rec, &logline) == VETVDM_OK, "log error format");
     check(has(logline.data, "exit=0xE0000002"), "log high exit");
     vcore_buf_free(&logline);
+    rec.type_hint = "ne";
+    check(vcore_log_format(&rec, &logline) == VETVDM_OK, "log type format");
+    check(has(logline.data, " type=ne layer="), "log records --type");
+    vcore_buf_free(&logline);
+    rec.type_hint = NULL;
+    check(vcore_log_format(&rec, &logline) == VETVDM_OK, "log no type");
+    check(!has(logline.data, " type="), "log omits type without hint");
+    vcore_buf_free(&logline);
+    {
+        /* PR #28: by-name Win16 profiles need match.size or lookup drops them. */
+        static const char ski[] =
+            "{\"id\":\"skifree-1.04-freeware\",\"match\":{\"name\":\"SKI.EXE\","
+            "\"size\":88848},\"layer\":\"winevdm\"}";
+        vcore_profile p;
+        memset(&p, 0, sizeof(p));
+        check(vcore_profile_parse(ski, (DWORD)(sizeof(ski) - 1), &p) == VETVDM_OK,
+              "win16 profile parse");
+        check(p.match_size_set && p.match_size == 88848, "win16 profile size");
+        check(strcmp(p.match_name, "SKI.EXE") == 0, "win16 profile name");
+    }
 
     memset(&dry, 0, sizeof(dry));
     dry.layer = "dosboxx";

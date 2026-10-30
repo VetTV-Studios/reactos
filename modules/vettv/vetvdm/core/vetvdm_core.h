@@ -222,6 +222,7 @@ typedef struct vcore_log_rec
     const char *program;
     const char *sha256;
     const char *kind;
+    const char *type_hint;   /* --type value (ne|mz) or NULL */
     const char *layer;
     const char *profile_id;
     DWORD exit_code;

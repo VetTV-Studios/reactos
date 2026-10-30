@@ -165,6 +165,14 @@ console_attach(int alloc_ok)
     HANDLE out;
     if (g_console)
         return 1;
+    /* stdout redirected to a file or pipe (vetvdm --dry-run > out.txt). */
+    out = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (out && out != INVALID_HANDLE_VALUE &&
+        (GetFileType(out) == FILE_TYPE_DISK || GetFileType(out) == FILE_TYPE_PIPE))
+    {
+        g_console = 1;
+        return 1;
+    }
     if (!AttachConsole(ATTACH_PARENT_PROCESS))
     {
         out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -211,6 +219,13 @@ console_write(const char *text)
     }
     out = GetStdHandle(STD_OUTPUT_HANDLE);
     chars = vcore_w_len(wide);
+    /* Redirected (file or pipe): write the UTF-8 bytes as they are. */
+    if (out && out != INVALID_HANDLE_VALUE && GetFileType(out) != FILE_TYPE_CHAR)
+    {
+        WriteFile(out, text, bytes, &wrote, NULL);
+        HeapFree(GetProcessHeap(), 0, wide);
+        return;
+    }
     if (!out || out == INVALID_HANDLE_VALUE ||
         !WriteConsoleW(out, wide, chars, &wrote, NULL))
     {

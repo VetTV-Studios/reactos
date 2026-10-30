@@ -64,10 +64,12 @@ write_log_early(host *st, const char *line)
                    NULL, TRUE, NULL, NULL))))
         return;
     mkdir_parents(path);
-    file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+    /* ReactOS does not honor append-only access (see write_log); seek. */
+    file = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
                        NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == INVALID_HANDLE_VALUE)
         return;
+    SetFilePointer(file, 0, NULL, FILE_END);
     WriteFile(file, line, (DWORD)vcore_cstr_len(line), &wrote, NULL);
     FlushFileBuffers(file);
     CloseHandle(file);
@@ -153,6 +155,8 @@ write_log(host *st, DWORD code)
     rec.program = program;
     rec.sha256 = st->sha[0] ? st->sha : NULL;
     rec.kind = kind_buf;
+    rec.type_hint = st->cmd.type_hint == VETVDM_TYPE_NE ? "ne" :
+        (st->cmd.type_hint == VETVDM_TYPE_MZ ? "mz" : NULL);
     rec.layer = vetvdm_layer_name(st->layer);
     rec.profile_id = st->profile.id[0] ? st->profile.id : NULL;
     rec.exit_code = code;

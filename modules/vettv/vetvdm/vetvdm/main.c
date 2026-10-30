@@ -284,29 +284,63 @@ do_dry(host *st)
     return status;
 }
 
-/* 1 when this process is the only one attached to its console. */
-static int
-owns_fresh_console(void)
+/*
+ * Number of processes on our console, or 0 when there is none or the call
+ * fails (ReactOS csrss can return 0 here). The buffer is large enough that
+ * a typed launch (cmd.exe + vetvdm, maybe a parent batch) never truncates.
+ */
+static DWORD
+console_process_count(void)
 {
-    DWORD ids[4];
-    DWORD n;
+    DWORD ids[16];
 
-    n = GetConsoleProcessList(ids, 4);
-    return n == 1;
+    if (!GetConsoleWindow())
+        return 0;
+    return GetConsoleProcessList(ids, 16);
 }
 
 /*
  * A double-clicked console program owns a new console. Drop it before the
  * game so the window does not stay empty. cmd.exe shares its console, and
  * --from-hook keeps the caller's console for the DOSBox-X child.
+ *
+ * PR #28 freeze (typed in cmd, 2/10): only free when the count is exactly
+ * 1. Any doubt (0 = unknown, >1 = shared with cmd) keeps the console, so
+ * vetvdm never detaches from a console cmd.exe is still waiting on.
+ * Returns the action for the early log line.
  */
-static void
-release_own_console(const host *st)
+static const char *
+release_own_console(const host *st, DWORD count)
 {
     if (!st || st->cmd.from_hook)
-        return;
-    if (owns_fresh_console())
-        FreeConsole();
+        return "keep-hook";
+    if (count != 1)
+        return count ? "keep-shared" : "keep-unknown";
+    FreeConsole();
+    return "free";
+}
+
+/*
+ * Write the route to the shared log and flush it BEFORE any console change
+ * or child launch, for every layer (the old note_launch only covered
+ * DOSBox-X). A guest that freezes after this point still leaves a line.
+ */
+static void
+note_route(host *st, int layer, DWORD console_n, const char *console_act)
+{
+    char line[256];
+    const char *hint = st->cmd.type_hint == VETVDM_TYPE_NE ? "ne" :
+        (st->cmd.type_hint == VETVDM_TYPE_MZ ? "mz" : "-");
+
+    _snprintf(line, sizeof(line),
+              "route pid=%lu caller=%s kind=%s type=%s layer=%s profile=%s console=%lu:%s\r\n",
+              (unsigned long)GetCurrentProcessId(),
+              st->cmd.from_hook ? "hook" : ((st->cmd.from_shell || st->cmd.profile[0]) ? "shell" : "cli"),
+              vetvdm_kind_name(st->kind), hint, vetvdm_layer_name(layer),
+              st->profile.id[0] ? st->profile.id : "-",
+              (unsigned long)console_n, console_act);
+    line[sizeof(line) - 1] = 0;
+    write_log_early(st, line);
 }
 
 static DWORD
@@ -373,7 +407,13 @@ retry:
         st->why = "bad command line";
         return VETVDM_E_CMDLINE;
     }
-    release_own_console(st);
+    {
+        DWORD n = console_process_count();
+        const char *act = (st->cmd.from_hook ? "keep-hook" :
+                           (n == 1 ? "free" : (n ? "keep-shared" : "keep-unknown")));
+        note_route(st, layer, n, act);
+        release_own_console(st, n);
+    }
     status = launch_layer(st, layer, command, &code, &os_error);
     HeapFree(GetProcessHeap(), 0, command);
     command = NULL;
