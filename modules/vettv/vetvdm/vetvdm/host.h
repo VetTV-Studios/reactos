@@ -56,6 +56,10 @@ typedef struct host
     int have_temp;
     int skip_log;
     int dry_ran;
+    int fresh_wine;      /* VETVDM_FRESH_WINEVDM / vetvdm.ini FreshWineVDM */
+    int wow_ini;         /* otvdm.ini SeparateWOWVDM: 1 separate, 0 shared, -1 n/a */
+    long otvdm_pre;      /* otvdm*.exe already running at launch, -1 unknown */
+    DWORD otvdm_reaped;  /* own leftover otvdm processes ended after the wait */
     unsigned char *header;
 } host;
 
@@ -87,6 +91,11 @@ DWORD read_errorlevel(const WCHAR *dir, DWORD *code);
 WCHAR *host_command_dosbox(const host *st, const WCHAR *conf_path);
 WCHAR *host_command_wine(const host *st);
 WCHAR *host_command_ntvdm(const host *st);
+
+int fresh_wine_enabled(void);
+void fresh_wine_prepare(host *st);
+struct vcore_job;
+void fresh_wine_cleanup(host *st, struct vcore_job *job, DWORD child_pid);
 
 void write_log(host *st, DWORD code);
 void write_log_early(host *st, const char *line);

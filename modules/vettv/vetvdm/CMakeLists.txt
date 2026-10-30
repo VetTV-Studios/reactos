@@ -40,6 +40,7 @@ add_executable(vetvdm
     vetvdm/host_wine.c
     vetvdm/host_ntvdm.c
     vetvdm/host_log.c
+    vetvdm/host_fresh.c
     vetvdm/cmdline.c
     vetvdm/cmdline_norm.c
     vetvdm/cmdline_quote.c

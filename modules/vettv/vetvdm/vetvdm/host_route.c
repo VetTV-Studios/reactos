@@ -356,6 +356,10 @@ resolve_image(host *st)
             warn_add(st->warn, sizeof(st->warn), "kind-override");
     }
     st->kind = kind;
+    /* --type is only a hint from the launch hook; the header read above wins. */
+    if ((st->cmd.type_hint == VETVDM_TYPE_NE && st->cls != VETVDM_IMG_WIN16) ||
+        (st->cmd.type_hint == VETVDM_TYPE_MZ && st->cls == VETVDM_IMG_WIN16))
+        warn_add(st->warn, sizeof(st->warn), "type-hint-mismatch");
 
     if (st->cmd.cwd[0])
     {

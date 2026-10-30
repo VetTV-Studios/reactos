@@ -156,6 +156,21 @@ vetvdm_wine_lookup_step(int configured_ok, int bundled_ok,
     return "missing";
 }
 
+/*
+ * Next Win16 layer after `failed` could not be used: WineVDM, then the
+ * Windows 3.1 guest (needs DOSBox-X and the user's own Win3.1 dir; we never
+ * ship Microsoft files), then ReactOS NTVDM. Returns NONE after NTVDM.
+ */
+int
+vetvdm_win16_next_layer(int failed, int dosbox_ok, int win31_ok)
+{
+    if (failed == VETVDM_LAYER_WINEVDM && dosbox_ok && win31_ok)
+        return VETVDM_LAYER_WIN31;
+    if (failed == VETVDM_LAYER_WINEVDM || failed == VETVDM_LAYER_WIN31)
+        return VETVDM_LAYER_NTVDM;
+    return VETVDM_LAYER_NONE;
+}
+
 int
 vetvdm_layer_for_launch(int desired, int forced,
                        int dosbox_ok, int wine_ok, int win31_ok,
@@ -192,7 +207,33 @@ vetvdm_layer_for_launch(int desired, int forced,
                 *error = VETVDM_E_NOLAYER;
             return layer;
         }
-        layer = VETVDM_LAYER_NTVDM;
+        /* Win16 fallback: user-supplied Win3.1 dir in DOSBox-X, then NTVDM. */
+        layer = vetvdm_win16_next_layer(layer, dosbox_ok, win31_ok);
     }
     return layer;
+}
+
+const char *
+vetvdm_console_action(int from_hook, DWORD count)
+{
+    (void)from_hook;
+    if (count == 1)
+        return "free";
+    return count ? "keep-shared" : "keep-unknown";
+}
+
+int
+vetvdm_flag_on(const WCHAR *value)
+{
+    static const WCHAR *const on[] = { L"1", L"yes", L"true", L"on" };
+    unsigned i;
+
+    if (!value || !value[0])
+        return 0;
+    for (i = 0; i < sizeof(on) / sizeof(on[0]); i++)
+    {
+        if (lstrcmpiW(value, on[i]) == 0)
+            return 1;
+    }
+    return 0;
 }
