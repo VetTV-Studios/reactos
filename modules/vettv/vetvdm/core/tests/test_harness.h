@@ -30,6 +30,7 @@ int has(const char *hay, const char *needle);
 void test_normalize(void);
 void test_cmdline(void);
 void test_classify_and_route(void);
+void test_console_and_flag(void);
 void test_quote_conf_hash_log(void);
 void test_profile_and_policy(void);
 void test_policy_merge(void);

@@ -326,3 +326,24 @@ test_classify_and_route(void)
     check(vetvdm_win16_next_layer(VETVDM_LAYER_WIN31, 1, 1) == VETVDM_LAYER_NTVDM, "win31 next ntvdm");
     check(vetvdm_win16_next_layer(VETVDM_LAYER_NTVDM, 1, 1) == VETVDM_LAYER_NONE, "ntvdm last");
 }
+
+/* PR #28 item 2 + fresh-WineVDM flag. */
+void
+test_console_and_flag(void)
+{
+    check(strcmp(vetvdm_console_action(1, 1), "free") == 0, "hook gui parent frees own console");
+    check(strcmp(vetvdm_console_action(0, 1), "free") == 0, "double-click frees own console");
+    check(strcmp(vetvdm_console_action(1, 2), "keep-shared") == 0, "hook from cmd keeps console");
+    check(strcmp(vetvdm_console_action(0, 2), "keep-shared") == 0, "typed cmd keeps console");
+    check(strcmp(vetvdm_console_action(0, 3), "keep-shared") == 0, "batch keeps console");
+    check(strcmp(vetvdm_console_action(1, 0), "keep-unknown") == 0, "hook unknown keeps");
+    check(strcmp(vetvdm_console_action(0, 0), "keep-unknown") == 0, "unknown keeps");
+    check(vetvdm_flag_on(L"1") == 1, "flag 1");
+    check(vetvdm_flag_on(L"YES") == 1, "flag YES");
+    check(vetvdm_flag_on(L"true") == 1, "flag true");
+    check(vetvdm_flag_on(L"On") == 1, "flag On");
+    check(vetvdm_flag_on(L"0") == 0, "flag 0");
+    check(vetvdm_flag_on(L"") == 0, "flag empty");
+    check(vetvdm_flag_on(NULL) == 0, "flag null");
+    check(vetvdm_flag_on(L"2") == 0, "flag 2");
+}

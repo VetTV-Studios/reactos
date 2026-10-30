@@ -212,3 +212,28 @@ vetvdm_layer_for_launch(int desired, int forced,
     }
     return layer;
 }
+
+const char *
+vetvdm_console_action(int from_hook, DWORD count)
+{
+    (void)from_hook;
+    if (count == 1)
+        return "free";
+    return count ? "keep-shared" : "keep-unknown";
+}
+
+int
+vetvdm_flag_on(const WCHAR *value)
+{
+    static const WCHAR *const on[] = { L"1", L"yes", L"true", L"on" };
+    unsigned i;
+
+    if (!value || !value[0])
+        return 0;
+    for (i = 0; i < sizeof(on) / sizeof(on[0]); i++)
+    {
+        if (lstrcmpiW(value, on[i]) == 0)
+            return 1;
+    }
+    return 0;
+}

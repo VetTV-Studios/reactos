@@ -60,4 +60,21 @@ int vetvdm_layer_for_launch(int desired, int forced,
 const char *vetvdm_wine_lookup_step(int configured_ok, int bundled_ok,
                                    int same_path, int programfiles_ok);
 
+/*
+ * Console action before the layer starts (PR #28 item 2). Exactly one
+ * process on the console means the console is vetvdm's own: a GUI parent
+ * (Explorer, Start->Run, the launch hook from a GUI caller) made it for
+ * this CUI exe, so free it. More than one means cmd.exe or a batch shares
+ * it (typed launch): keep it. 0 means unknown: keep it. --from-hook no
+ * longer forces keep; the count alone decides.
+ * Returns "free", "keep-shared" or "keep-unknown".
+ */
+const char *vetvdm_console_action(int from_hook, DWORD count);
+
+/*
+ * VETVDM_FRESH_WINEVDM / vetvdm.ini FreshWineVDM value: 1 for "1", "yes",
+ * "true", "on" (any case), else 0. NULL or empty is 0.
+ */
+int vetvdm_flag_on(const WCHAR *value);
+
 #endif /* VETVDM_ROUTE_H */

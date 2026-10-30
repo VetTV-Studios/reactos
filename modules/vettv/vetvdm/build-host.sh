@@ -17,7 +17,7 @@ OUT=${1:-vetvdm.exe}
   -o "$OUT" \
   vetvdm/main.c vetvdm/hostutil.c vetvdm/host_route.c \
   vetvdm/host_dosbox.c vetvdm/host_doscmd.c vetvdm/host_wine.c \
-  vetvdm/host_ntvdm.c vetvdm/host_log.c \
+  vetvdm/host_ntvdm.c vetvdm/host_log.c vetvdm/host_fresh.c \
   vetvdm/cmdline.c vetvdm/cmdline_norm.c vetvdm/cmdline_quote.c \
   vetvdm/image.c vetvdm/route.c vetvdm/ask.c vetvdm/image_io.c \
   core/buf.c core/utf8.c core/sha256.c core/quote.c \

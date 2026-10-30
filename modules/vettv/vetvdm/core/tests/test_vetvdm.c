@@ -23,6 +23,7 @@ run_tests(void)
     test_normalize();
     test_cmdline();
     test_classify_and_route();
+    test_console_and_flag();
     test_quote_conf_hash_log();
     test_profile_and_policy();
     test_policy_merge();
