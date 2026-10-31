@@ -61,7 +61,26 @@ target_include_directories(vetvdm PRIVATE
 target_link_libraries(vetvdm vetvdm_core vetvdm_paths)
 add_importlibs(vetvdm user32 advapi32 shell32 msvcrt kernel32)
 # VetTV: the launch hook starts %SystemRoot%\System32\vetvdm.exe.
-add_cd_file(TARGET vetvdm DESTINATION reactos/system32 FOR all)
+# VetTV (pin): the shipped vetvdm.exe is pinned by sha256 (Lead ruling: in-tree
+# build 6ea39eba...9774, the exe that passed 237/237 + 12/12). Rebuilding in a
+# new build dir gives a different hash for identical sources (PE link
+# timestamp and the build-dir path in .rossym), so a fresh bootcd would ship an
+# untested binary. When VETTV_VETVDM_PINNED is set, ship that file instead,
+# after checking its hash. Unset = old behaviour (ship the freshly built exe).
+set(VETTV_VETVDM_PINNED "" CACHE FILEPATH "Prebuilt vetvdm.exe to ship instead of the built one")
+set(VETTV_VETVDM_PINNED_SHA256 "6ea39ebade5125ec19e18ec7067100801bf1f671c58005f1c52e7360e2ec9774" CACHE STRING "Expected sha256 of VETTV_VETVDM_PINNED")
+if(VETTV_VETVDM_PINNED)
+    file(SHA256 "${VETTV_VETVDM_PINNED}" _vetvdm_pin_sha)
+    if(NOT _vetvdm_pin_sha STREQUAL VETTV_VETVDM_PINNED_SHA256)
+        message(FATAL_ERROR "VETTV_VETVDM_PINNED ${VETTV_VETVDM_PINNED} sha256 ${_vetvdm_pin_sha} != pinned ${VETTV_VETVDM_PINNED_SHA256}")
+    endif()
+    message(STATUS "VetTV: shipping pinned vetvdm.exe ${_vetvdm_pin_sha}")
+    # reactos.cab ignores NAME_ON_CD, so stage the pin under its real name.
+    configure_file("${VETTV_VETVDM_PINNED}" "${CMAKE_CURRENT_BINARY_DIR}/pinned/vetvdm.exe" COPYONLY)
+    add_cd_file(FILE "${CMAKE_CURRENT_BINARY_DIR}/pinned/vetvdm.exe" DESTINATION reactos/system32 FOR all)
+else()
+    add_cd_file(TARGET vetvdm DESTINATION reactos/system32 FOR all)
+endif()
 
 add_executable(vetvdm_test
     core/tests/test_vetvdm.c

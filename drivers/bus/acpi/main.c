@@ -191,6 +191,16 @@ ButtonWaitThread(PVOID Context)
     struct acpi_bus_event event;
     ULONG ButtonEvent;
 
+    /* VETTV (R-PWR-2): the power manager's IRP completion routine
+     * (PopGetSysButtonCompletion) runs inline in this thread and, for the
+     * power button, calls ZwShutdownSystem from here. System threads start at
+     * priority 8, so a CPU-bound ABOVE_NORMAL app (DOSBox-X, base 10, e.g.
+     * JAZZ busy-looping on its SETUP nag) starved the whole shutdown as soon
+     * as it blocked once (a page fault / registry read before the shutdown
+     * code raised its own priority). Run at low real-time priority; this
+     * thread only waits for ACPI button notifications. */
+    KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+
     while (ACPI_SUCCESS(result = acpi_bus_receive_event(&event)) &&
            event.type != ACPI_BUTTON_NOTIFY_STATUS);
 

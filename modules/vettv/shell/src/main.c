@@ -460,6 +460,10 @@ static LRESULT CALLBACK WndProc(HWND w, UINT m, WPARAM wp, LPARAM lp)
             VtLog(L"WM_ENDSESSION: session ending");
             if (g_kbHook) { UnhookWindowsHookEx(g_kbHook); g_kbHook = NULL; }
             ShowWindow(w, SW_HIDE);
+            /* R-PWR-2: hiding alone left us RUNNING in poshtdwn, stalling
+               power-off. The session is ending, so leave now. */
+            VtLog(L"WM_ENDSESSION: exiting");
+            ExitProcess(0);
         }
         return 0;
     case WM_APP_DONE:

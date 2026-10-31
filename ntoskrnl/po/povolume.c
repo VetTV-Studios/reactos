@@ -158,6 +158,13 @@ PopFlushVolumeWorker(IN PVOID Context)
     HANDLE VolumeHandle;
     IO_STATUS_BLOCK IoStatusBlock;
 
+    /* VETTV (R-PWR-2): during shutdown PopFlushVolumes() waits for us from a
+     * LOW_REALTIME_PRIORITY thread (see NtSetSystemPowerState). We are created
+     * at priority 8, so a CPU-bound ABOVE_NORMAL app (DOSBox-X) would starve
+     * this flush and stall the whole shutdown. Match the waiter's priority. */
+    if (PopAction.Shutdown)
+        KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+
     /* Acquire the flush lock since we're messing with the list */
     KeAcquireGuardedMutex(&PopVolumeLock);
 
