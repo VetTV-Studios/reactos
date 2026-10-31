@@ -1132,6 +1132,8 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
     POP_POWER_ACTION Action = {0};
     NTSTATUS Status;
     ULONG Dummy;
+    KPRIORITY OldPriority = 0; /* VETTV (R-PWR-2) */
+    BOOLEAN PriorityRaised = FALSE; /* VETTV (R-PWR-2) */
 
     /* Check for invalid parameter combinations */
     if ((MinSystemState >= PowerSystemMaximum) ||
@@ -1170,6 +1172,29 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
 
     /* Read policy settings (partial shutdown vs. full shutdown) */
     if (SystemAction == PowerActionShutdown) PopReadShutdownPolicy();
+
+    /*
+     * VETTV (R-PWR-2): run the rest of a shutdown at low real-time priority.
+     *
+     * The ACPI power button reaches us inline from the ACPI driver's
+     * ButtonWaitThread (a system thread at the default priority 8, see
+     * PopGetSysButtonCompletion), so PopGracefulShutdown() also runs inline in
+     * that thread. While a CPU-bound app of a higher class is running (DOSBox-X
+     * sets itself ABOVE_NORMAL by default, "priority = higher", base 10), a
+     * priority 8 thread only runs when the balance set manager's anti-starvation
+     * boost hands it a short quantum, so the volume/cache flush below and the
+     * graceful shutdown took 30 s to more than 3 minutes on a single vCPU.
+     * Nothing in user mode gets to run after this point anyway (no csrss
+     * EndTask on this path), so let the shutdown preempt such apps.
+     * The old priority is restored if we come back without shutting down.
+     */
+    if ((SystemAction == PowerActionShutdown) ||
+        (SystemAction == PowerActionShutdownReset) ||
+        (SystemAction == PowerActionShutdownOff))
+    {
+        OldPriority = KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+        PriorityRaised = TRUE;
+    }
 
     /* Disable lazy flushing of registry */
     DPRINT("Stopping lazy flush\n");
@@ -1264,6 +1289,9 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
     }
 
 Exit:
+    /* VETTV (R-PWR-2): undo the shutdown priority raise if we come back */
+    if (PriorityRaised) KeSetPriorityThread(KeGetCurrentThread(), OldPriority);
+
     /* We're done, return */
     return Status;
 }
