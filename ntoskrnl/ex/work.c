@@ -662,6 +662,20 @@ ExSwapinWorkerThreads(IN BOOLEAN AllowSwap)
         /* Skip threads with explicit permission to do this */
         if (Thread->ExWorkerCanWaitUser) goto Next;
 
+        /*
+         * VETTV (R-PWR-2): only executive worker threads need the APC.
+         * ExpSetSwappingKernelApc does nothing for any other thread except
+         * signal the event, yet we used to queue it to every System thread and
+         * wait for each one in turn. A kernel APC is only delivered when its
+         * target thread gets the CPU, so a priority 0-8 system thread (zero
+         * page thread, driver threads) behind a busy-looping priority 10 user
+         * thread (DOSBox-X on JAZZ's SETUP nag) never ran it and the shutdown
+         * (NtSetSystemPowerState -> ExSwapinWorkerThreads) hung forever before
+         * PopGracefulShutdown. Workers run at 12-15, above any non-realtime
+         * user thread. Matches Windows, which only walks the worker threads.
+         */
+        if ((Thread != CurrentThread) && !Thread->ActiveExWorker) goto Next;
+
         /* Check if we reached ourselves */
         if (Thread == CurrentThread)
         {
