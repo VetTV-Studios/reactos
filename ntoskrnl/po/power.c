@@ -1170,9 +1170,6 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
         return ZwSetSystemPowerState(SystemAction, MinSystemState, Flags);
     }
 
-    /* Read policy settings (partial shutdown vs. full shutdown) */
-    if (SystemAction == PowerActionShutdown) PopReadShutdownPolicy();
-
     /*
      * VETTV (R-PWR-2): run the rest of a shutdown at low real-time priority.
      *
@@ -1187,6 +1184,8 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
      * Nothing in user mode gets to run after this point anyway (no csrss
      * EndTask on this path), so let the shutdown preempt such apps.
      * The old priority is restored if we come back without shutting down.
+     * Done before PopReadShutdownPolicy(): that registry read can block, and
+     * a priority 8 thread woken behind a busy app never ran again.
      */
     if ((SystemAction == PowerActionShutdown) ||
         (SystemAction == PowerActionShutdownReset) ||
@@ -1195,6 +1194,9 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
         OldPriority = KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
         PriorityRaised = TRUE;
     }
+
+    /* Read policy settings (partial shutdown vs. full shutdown) */
+    if (SystemAction == PowerActionShutdown) PopReadShutdownPolicy();
 
     /* Disable lazy flushing of registry */
     DPRINT("Stopping lazy flush\n");

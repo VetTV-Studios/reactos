@@ -80,6 +80,14 @@ PopGetSysButtonCompletion(
         if (SysButton & SYS_BUTTON_POWER)
         {
             /* FIXME: Read registry for the action we should perform here */
+
+            /* VETTV (R-PWR-2): we run inline in whatever thread completed the
+             * button IRP (the ACPI driver's ButtonWaitThread). Raise it to low
+             * real-time priority before anything that can block (pageable
+             * code, registry, flushes) so a busy-looping user thread of a
+             * higher class can't starve the shutdown. NtSetSystemPowerState
+             * raises again, which is harmless. */
+            KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
             DPRINT1("Initiating shutdown after power button event\n");
 
             ZwShutdownSystem(ShutdownNoReboot);
